@@ -61,6 +61,18 @@ export class AppConfigService {
     return this.readNumber('AYNI_MAXIMUM_POINTS_PER_SHARE', 60);
   }
 
+  get ayniQuestionCost(): number {
+    return this.readNumber('AYNI_QUESTION_COST', 5);
+  }
+
+  get ayniQuestionTimeoutMinutes(): number {
+    return this.readNumber('AYNI_QUESTION_TIMEOUT_MINUTES', 10);
+  }
+
+  get ayniVerifiedReportReward(): number {
+    return this.readNumber('AYNI_VERIFIED_REPORT_REWARD', 10);
+  }
+
   get incidentConfirmThreshold(): number {
     return this.readNumber('INCIDENT_CONFIRM_THRESHOLD', 3);
   }

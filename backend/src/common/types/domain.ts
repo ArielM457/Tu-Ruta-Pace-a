@@ -65,6 +65,33 @@ export enum TripStatus {
   Cancelled = 'cancelled',
 }
 
+export enum CommunityQuestionKind {
+  Availability = 'availability',
+  ArrivalTime = 'arrival_time',
+  Seats = 'seats',
+}
+
+export enum CommunityQuestionStatus {
+  Open = 'open',
+  Answered = 'answered',
+  Expired = 'expired',
+}
+
+export enum ComplaintTransportKind {
+  CableCar = 'cable_car',
+  Pumakatari = 'pumakatari',
+  Minibus = 'minibus',
+  Micro = 'micro',
+  Trufi = 'trufi',
+  Taxi = 'taxi',
+}
+
+export enum ComplaintStatus {
+  Submitted = 'submitted',
+  InReview = 'in_review',
+  Closed = 'closed',
+}
+
 export interface Coordinate {
   lat: number;
   lng: number;
