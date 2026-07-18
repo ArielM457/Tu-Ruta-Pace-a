@@ -48,6 +48,19 @@ export class TripsService {
     return this.toTrip(record);
   }
 
+  async listTrips(
+    userId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<Trip[]> {
+    const records = await this.tripsRepository.listByUser(
+      userId,
+      page,
+      pageSize,
+    );
+    return records.map((record) => this.toTrip(record));
+  }
+
   async findActiveTrip(userId: string): Promise<Trip | null> {
     const record = await this.tripsRepository.findActiveByUser(userId);
     return record ? this.toTrip(record) : null;
