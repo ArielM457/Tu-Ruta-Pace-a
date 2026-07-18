@@ -55,6 +55,16 @@ export class LocationSharesRepository {
     return (data ?? []) as LocationShareRecord[];
   }
 
+  async findActiveByUser(userId: string): Promise<LocationShareRecord[]> {
+    const { data, error } = await this.supabaseService.client
+      .from('location_shares')
+      .select('*')
+      .eq('user_id', userId)
+      .is('ended_at', null);
+    assertNoDatabaseError(error);
+    return (data ?? []) as LocationShareRecord[];
+  }
+
   async endActiveSharesForUser(userId: string): Promise<void> {
     const { error } = await this.supabaseService.client
       .from('location_shares')
