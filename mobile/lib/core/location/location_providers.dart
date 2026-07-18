@@ -30,6 +30,23 @@ class LocationService {
     final position = await Geolocator.getCurrentPosition();
     return Coordinate(lat: position.latitude, lng: position.longitude);
   }
+
+  /// Low-accuracy fix for background-ish periodic pings (battery friendly).
+  Future<Coordinate?> getCoarseCoordinate() async {
+    final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!isServiceEnabled) {
+      return null;
+    }
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
+    );
+    return Coordinate(lat: position.latitude, lng: position.longitude);
+  }
 }
 
 final locationServiceProvider = Provider<LocationService>(
