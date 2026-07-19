@@ -1,11 +1,11 @@
 {
-    "name": "ayni_ruta",
-    "short_name": "ayni_ruta",
+    "name": "Chasqui",
+    "short_name": "Chasqui",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Chasqui — movilidad colaborativa para La Paz.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

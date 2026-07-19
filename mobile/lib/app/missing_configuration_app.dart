@@ -8,7 +8,7 @@ class MissingConfigurationApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Ayni Ruta',
+      title: 'Chasqui',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       home: Scaffold(

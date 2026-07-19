@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Ayni Ruta</string>
+	<string>Chasqui</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,9 +27,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Ayni Ruta usa el micrófono para que puedas hacer preguntas por voz al asistente.</string>
+	<string>Chasqui usa el micrófono para que puedas hacer preguntas por voz a Chaski.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Ayni Ruta transcribe tu voz para entender tus preguntas al asistente.</string>
+	<string>Chasqui transcribe tu voz para entender tus preguntas a Chaski.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
