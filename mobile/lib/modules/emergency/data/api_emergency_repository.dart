@@ -47,7 +47,7 @@ class ApiEmergencyRepository implements EmergencyRepository {
   Future<List<HealthFacility>> getFacilitiesNear(
     Coordinate origin, {
     int radiusMeters = 3000,
-    String kind = 'hospital',
+    String? kind,
   }) async {
     try {
       final response = await _apiClient.get<dynamic>(
@@ -56,7 +56,7 @@ class ApiEmergencyRepository implements EmergencyRepository {
           'lat': origin.lat,
           'lng': origin.lng,
           'radius': radiusMeters,
-          'kind': kind,
+          if (kind != null) 'kind': kind,
         },
       );
       return (response.data as List<dynamic>)

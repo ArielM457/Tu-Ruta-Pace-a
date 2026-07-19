@@ -7,6 +7,6 @@ abstract class EmergencyRepository {
   Future<List<HealthFacility>> getFacilitiesNear(
     Coordinate origin, {
     int radiusMeters = 3000,
-    String kind = 'hospital',
+    String? kind,
   });
 }

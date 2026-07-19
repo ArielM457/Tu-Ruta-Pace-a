@@ -4,6 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
 import '../../../routing/presentation/providers/routing_providers.dart';
 import '../providers/assistant_providers.dart';
 import '../widgets/chat_bubble.dart';
@@ -81,15 +82,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Destino entendido: $destinationName'),
-        backgroundColor: Colors.indigo[700],
-        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 5),
         action: SnackBarAction(
           label: 'Buscar en mapa',
-          textColor: Colors.amberAccent,
+          textColor: ChasquiColors.yellow500,
           onPressed: () {
             ref.read(routeRequestProvider.notifier).clearDestination();
-            context.go(AppRoutes.home);
+            context.push(AppRoutes.map);
           },
         ),
       ),
@@ -129,39 +128,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final hasMessages = chatState.messages.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.smart_toy_outlined),
-            const Gap(8),
-            const Text('Asistente Ayni'),
-            const Gap(8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.indigo[50],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'IA · GPT-5',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.indigo[700],
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Pedir ruta por voz',
-            icon: const Icon(Icons.assistant_navigation),
-            onPressed: _startVoiceRoute,
-          ),
-        ],
-      ),
+      backgroundColor: Colors.white,
+      appBar: _ChaskiHeader(onVoiceRoute: _startVoiceRoute),
       body: Column(
         children: [
           Expanded(
@@ -182,6 +150,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 : _buildEmptyState(theme),
           ),
           if (!hasMessages) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'PREGUNTAS FRECUENTES',
+                  style: theme.textTheme.labelSmall,
+                ),
+              ),
+            ),
             FaqChips(onSelect: _sendFaq),
             const Gap(12),
           ],
@@ -198,12 +176,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.chat_bubble_outline, size: 56, color: Colors.indigo[100]),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: ChasquiColors.yellow200,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 30,
+                color: ChasquiColors.yellow800,
+              ),
+            ),
             const Gap(16),
             Text(
-              'Pregúntame sobre transporte,\nrutas o cómo usar la app',
+              'Hola, soy Chaski. Puedo ayudarte a encontrar rutas, resolver dudas sobre tarifas y más.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: ChasquiColors.neutral500,
+              ),
             ),
           ],
         ),
@@ -212,42 +204,168 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildInputRow(VoiceInputStatus voiceStatus) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _textController,
-                onSubmitted: (_) => _sendText(),
-                decoration: InputDecoration(
-                  hintText: 'Pregunta algo...',
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
-                    borderSide: BorderSide.none,
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: ChasquiColors.neutral100)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _textController,
+                  onSubmitted: (_) => _sendText(),
+                  decoration: const InputDecoration(
+                    hintText: 'Escribe tu pregunta...',
                   ),
                 ),
               ),
+              const Gap(8),
+              MicButton(
+                status: voiceStatus,
+                onStartListening: _startListening,
+                onStopListening: _stopListening,
+              ),
+              const Gap(8),
+              Semantics(
+                label: 'Enviar mensaje',
+                button: true,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: _sendText,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: ChasquiColors.yellow600,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.send_rounded,
+                      size: 18,
+                      color: ChasquiColors.neutral950,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChaskiHeader extends StatelessWidget implements PreferredSizeWidget {
+  const _ChaskiHeader({required this.onVoiceRoute});
+
+  final VoidCallback onVoiceRoute;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(60);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: ChasquiColors.neutral100)),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 60,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Semantics(
+                  label: 'Volver',
+                  button: true,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => context.pop(),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: ChasquiColors.neutral50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        size: 18,
+                        color: ChasquiColors.neutral900,
+                      ),
+                    ),
+                  ),
+                ),
+                const Gap(12),
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: ChasquiColors.yellow600,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 16,
+                    color: ChasquiColors.neutral950,
+                  ),
+                ),
+                const Gap(10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Chaski',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: ChasquiColors.neutral950,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: ChasquiColors.success,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const Gap(4),
+                          const Text(
+                            'En línea',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: ChasquiColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Pedir ruta por voz',
+                  icon: const Icon(
+                    Icons.assistant_navigation,
+                    color: ChasquiColors.neutral700,
+                  ),
+                  onPressed: onVoiceRoute,
+                ),
+              ],
             ),
-            const Gap(8),
-            MicButton(
-              status: voiceStatus,
-              onStartListening: _startListening,
-              onStopListening: _stopListening,
-            ),
-            const Gap(6),
-            IconButton(
-              icon: const Icon(Icons.send),
-              color: Colors.indigo[700],
-              onPressed: _sendText,
-            ),
-          ],
+          ),
         ),
       ),
     );

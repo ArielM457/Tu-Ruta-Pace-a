@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/api/api_client.dart';
+import '../../../../core/location/location_providers.dart';
 import '../../../../core/types/coordinate.dart';
 import '../../data/api_emergency_repository.dart';
 import '../../domain/emergency_entities.dart';
@@ -12,6 +13,17 @@ final emergencyRepositoryProvider = Provider<EmergencyRepository>(
 
 final emergencyContactsProvider = FutureProvider<List<EmergencyContact>>(
   (ref) => ref.watch(emergencyRepositoryProvider).getContacts(),
+);
+
+final nearbyFacilitiesProvider =
+    FutureProvider.family.autoDispose<List<HealthFacility>, String?>(
+  (ref, kind) async {
+    final position = await ref.watch(currentPositionProvider.future);
+    if (position == null) return [];
+    return ref
+        .watch(emergencyRepositoryProvider)
+        .getFacilitiesNear(position, kind: kind);
+  },
 );
 
 class EmergencyRouteNotifier

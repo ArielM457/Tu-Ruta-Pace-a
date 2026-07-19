@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:gap/gap.dart';
 
+import '../../../../app/theme.dart';
 import '../../domain/chat_entities.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -17,13 +18,13 @@ class ChatBubble extends StatelessWidget {
     final bubbleColor = message.isError
         ? Colors.red[50]
         : isUser
-            ? Colors.indigo[600]
-            : Colors.grey[100];
+            ? ChasquiColors.yellow600
+            : ChasquiColors.neutral50;
     final textColor = message.isError
         ? Colors.red[900]
         : isUser
-            ? Colors.white
-            : Colors.black87;
+            ? ChasquiColors.neutral950
+            : ChasquiColors.neutral900;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -45,11 +46,14 @@ class ChatBubble extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: bubbleColor,
                     borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(16),
-                      topRight: const Radius.circular(16),
-                      bottomLeft: Radius.circular(isUser ? 16 : 4),
-                      bottomRight: Radius.circular(isUser ? 4 : 16),
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isUser ? 18 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 18),
                     ),
+                    border: isUser
+                        ? null
+                        : Border.all(color: ChasquiColors.neutral100),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

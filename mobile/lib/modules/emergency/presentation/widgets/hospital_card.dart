@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:gap/gap.dart';
 
+import '../../../../app/theme.dart';
+import '../../../../core/widgets/chasqui_card.dart';
+import '../../../../core/widgets/chasqui_tag.dart';
 import '../../domain/emergency_entities.dart';
 
 class HospitalCard extends StatelessWidget {
@@ -20,80 +22,69 @@ class HospitalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ChasquiCard(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isRecommended
-              ? const Color(0xFFFFEB3B)
-              : const Color(0xFFC62828),
-          borderRadius: BorderRadius.circular(16),
-          border: isRecommended
-              ? null
-              : Border.all(color: const Color(0xFFEF9A9A), width: 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                _HospitalIcon(isRecommended: isRecommended),
-                const Gap(12),
-                Expanded(
-                  child: Text(
-                    candidate.facility.name,
-                    style: TextStyle(
-                      color: isRecommended ? Colors.black87 : Colors.white,
-                      fontSize: isRecommended ? 16 : 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  color: ChasquiColors.successSurface,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.local_hospital_rounded,
+                  color: ChasquiColors.successText,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  candidate.facility.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: ChasquiColors.neutral950,
                   ),
                 ),
-                if (isRecommended)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB71C1C),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'MÁS RÁPIDO',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const Gap(12),
-            Row(
-              children: [
-                _MetricChip(
-                  icon: Icons.timer_outlined,
-                  value: '${candidate.durationMinutes} min',
-                  isRecommended: isRecommended,
+              ),
+              if (isRecommended)
+                const ChasquiTag(
+                  label: 'MÁS RÁPIDO',
+                  background: ChasquiColors.yellow600,
+                  foreground: ChasquiColors.neutral950,
                 ),
-                const Gap(12),
-                _MetricChip(
-                  icon: Icons.place_outlined,
-                  value: '${candidate.distanceKm.toStringAsFixed(1)} km',
-                  isRecommended: isRecommended,
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _MetricChip(
+                icon: Icons.timer_outlined,
+                value: '${candidate.durationMinutes} min',
+              ),
+              const SizedBox(width: 12),
+              _MetricChip(
+                icon: Icons.place_outlined,
+                value: '${candidate.distanceKm.toStringAsFixed(1)} km',
+              ),
+              if (candidate.affectedByIncidents) ...[
+                const SizedBox(width: 12),
+                const ChasquiTag(
+                  label: 'Tráfico',
+                  background: ChasquiColors.warm200,
+                  foreground: ChasquiColors.orange700,
+                  icon: Icons.warning_amber_rounded,
                 ),
-                if (candidate.affectedByIncidents) ...[
-                  const Gap(12),
-                  _IncidentChip(isRecommended: isRecommended),
-                ],
               ],
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ),
     )
         .animate(delay: (index * 100).ms)
@@ -102,97 +93,28 @@ class HospitalCard extends StatelessWidget {
   }
 }
 
-class _HospitalIcon extends StatelessWidget {
-  const _HospitalIcon({required this.isRecommended});
-
-  final bool isRecommended;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isRecommended ? const Color(0xFFB71C1C) : Colors.white;
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: isRecommended ? Colors.white : const Color(0xFFB71C1C),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(Icons.local_hospital, color: color, size: 22),
-    )
-        .animate(onPlay: (c) => c.repeat(reverse: true))
-        .scaleXY(
-          begin: 1.0,
-          end: isRecommended ? 1.15 : 1.0,
-          duration: 900.ms,
-          curve: Curves.easeInOut,
-        );
-  }
-}
-
 class _MetricChip extends StatelessWidget {
-  const _MetricChip({
-    required this.icon,
-    required this.value,
-    required this.isRecommended,
-  });
+  const _MetricChip({required this.icon, required this.value});
 
   final IconData icon;
   final String value;
-  final bool isRecommended;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: isRecommended
-              ? Colors.black54
-              : const Color(0xFFFFCDD2),
-        ),
-        const Gap(4),
+        Icon(icon, size: 14, color: ChasquiColors.neutral400),
+        const SizedBox(width: 4),
         Text(
           value,
-          style: TextStyle(
-            color: isRecommended ? Colors.black87 : Colors.white,
-            fontSize: 14,
+          style: const TextStyle(
+            fontSize: 13,
             fontWeight: FontWeight.w700,
+            color: ChasquiColors.neutral950,
           ),
         ),
       ],
-    ).animate().scale(
-          begin: const Offset(0.7, 0.7),
-          duration: 500.ms,
-          curve: Curves.elasticOut,
-        );
-  }
-}
-
-class _IncidentChip extends StatelessWidget {
-  const _IncidentChip({required this.isRecommended});
-
-  final bool isRecommended;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        color: isRecommended
-            ? const Color(0xFFF57F17)
-            : const Color(0xFFB71C1C),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Text(
-        '⚠️ Tráfico',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }

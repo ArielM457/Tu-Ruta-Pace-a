@@ -1,19 +1,46 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gap/gap.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+import '../../../../app/theme.dart';
 import '../../../../core/location/location_providers.dart';
-import '../../../../core/types/coordinate.dart';
-import '../../../../core/utils/polyline_decoder.dart';
+import '../../../../core/widgets/chasqui_top_bar.dart';
 import '../../domain/emergency_entities.dart';
 import '../providers/emergency_providers.dart';
 import '../widgets/emergency_contact_card.dart';
-import '../widgets/hospital_card.dart';
+import '../widgets/emergency_route_sheet.dart';
+import '../widgets/nearby_facility_tile.dart';
 
-// La Paz city center as fallback
-const _laPazCenter = Coordinate(lat: -16.5000, lng: -68.1500);
+enum _SosCategory { rescue, retention, accident }
+
+extension _SosCategoryUi on _SosCategory {
+  String get label => switch (this) {
+        _SosCategory.rescue => 'Rescate',
+        _SosCategory.retention => 'Retención',
+        _SosCategory.accident => 'Accidente',
+      };
+
+  IconData get icon => switch (this) {
+        _SosCategory.rescue => Icons.favorite_rounded,
+        _SosCategory.retention => Icons.shield_rounded,
+        _SosCategory.accident => Icons.warning_rounded,
+      };
+
+  /// null means "both kinds" (backend returns everything).
+  String? get facilityKindFilter => switch (this) {
+        _SosCategory.rescue => 'hospital',
+        _SosCategory.retention => 'police',
+        _SosCategory.accident => null,
+      };
+}
+
+enum _EmergencyTab { nearby, numbers }
+
+const List<EmergencyContact> _fallbackContacts = [
+  EmergencyContact(name: 'Policía Nacional', number: '110'),
+  EmergencyContact(name: 'Bomberos', number: '119'),
+  EmergencyContact(name: 'Ambulancia SAMU', number: '165'),
+  EmergencyContact(name: 'Defensa Civil', number: '800-10-1900'),
+];
 
 class EmergencyScreen extends ConsumerStatefulWidget {
   const EmergencyScreen({super.key});
@@ -23,386 +50,359 @@ class EmergencyScreen extends ConsumerStatefulWidget {
 }
 
 class _EmergencyScreenState extends ConsumerState<EmergencyScreen> {
-  Coordinate? _userPosition;
+  bool _sosActive = false;
+  _SosCategory? _category;
+  _EmergencyTab _tab = _EmergencyTab.nearby;
 
-  static const _emergencyBg = Color(0xFFB71C1C);
-  static const _emergencySurface = Color(0xFFC62828);
-  static const _emergencyAccent = Color(0xFFFFEB3B);
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
-  }
-
-  Future<void> _init() async {
-    final position = await ref.read(locationServiceProvider).getCurrentCoordinate();
-    final origin = position ?? _laPazCenter;
-    setState(() => _userPosition = origin);
+  Future<void> _openRouteSheet(HealthFacility facility) async {
+    final origin = ref.read(currentPositionProvider).value;
+    if (origin == null) return;
     await ref.read(emergencyRouteProvider.notifier).buildRoute(origin);
+    if (!mounted) return;
+    await EmergencyRouteSheet.show(context, origin: origin);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: _emergencyBg,
-        colorScheme: const ColorScheme.dark(
-          primary: _emergencyAccent,
-          surface: _emergencySurface,
-        ),
+    final theme = Theme.of(context);
+    final origin = ref.watch(currentPositionProvider).value;
+    final facilitiesState = ref.watch(
+      nearbyFacilitiesProvider(_category?.facilityKindFilter),
+    );
+
+    return Scaffold(
+      appBar: const ChasquiTopBar(
+        title: 'Emergencias',
+        subtitle: 'Servicios de ayuda cercanos',
       ),
-      child: Scaffold(
-        backgroundColor: _emergencyBg,
-        body: SafeArea(
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 24),
+        children: [
+          _SosButtonSection(
+            active: _sosActive,
+            onToggle: () => setState(() {
+              _sosActive = !_sosActive;
+              if (!_sosActive) _category = null;
+            }),
+          ),
+          if (_sosActive) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  for (final category in _SosCategory.values) ...[
+                    Expanded(
+                      child: _CategoryButton(
+                        category: category,
+                        isSelected: category == _category,
+                        onTap: () => setState(
+                          () => _category =
+                              _category == category ? null : category,
+                        ),
+                      ),
+                    ),
+                    if (category != _SosCategory.values.last)
+                      const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _TabButton(
+                    label: 'Cercanos',
+                    isSelected: _tab == _EmergencyTab.nearby,
+                    onTap: () =>
+                        setState(() => _tab = _EmergencyTab.nearby),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _TabButton(
+                    label: 'Números de ayuda',
+                    isSelected: _tab == _EmergencyTab.numbers,
+                    onTap: () =>
+                        setState(() => _tab = _EmergencyTab.numbers),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _tab == _EmergencyTab.nearby
+                ? facilitiesState.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, _) => Text(
+                      'No pudimos cargar los servicios cercanos.',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                    data: (facilities) {
+                      if (facilities.isEmpty) {
+                        return Text(
+                          'No encontramos servicios cercanos. Activa tu ubicación e intenta de nuevo.',
+                          style: theme.textTheme.bodyMedium,
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (final (i, facility) in facilities.indexed) ...[
+                            NearbyFacilityTile(
+                              facility: facility,
+                              origin: origin,
+                              index: i,
+                              onTap: () => _openRouteSheet(facility),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
+                        ],
+                      );
+                    },
+                  )
+                : Consumer(
+                    builder: (context, ref, _) {
+                      final contactsState =
+                          ref.watch(emergencyContactsProvider);
+                      return contactsState.when(
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                        error: (_, _) => Column(
+                          children: [
+                            for (final (i, contact)
+                                in _fallbackContacts.indexed) ...[
+                              EmergencyContactCard(
+                                contact: contact,
+                                index: i,
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ],
+                        ),
+                        data: (contacts) => Column(
+                          children: [
+                            for (final (i, contact) in contacts.indexed) ...[
+                              EmergencyContactCard(
+                                contact: contact,
+                                index: i,
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SosButtonSection extends StatelessWidget {
+  const _SosButtonSection({required this.active, required this.onToggle});
+
+  final bool active;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      child: Column(
+        children: [
+          Semantics(
+            label: active
+                ? 'Modo emergencia activo. Toca para desactivar.'
+                : 'Toca para activar el modo emergencia',
+            button: true,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onToggle,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                width: 128,
+                height: 128,
+                decoration: BoxDecoration(
+                  color: active ? ChasquiColors.orange600 : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: active
+                        ? ChasquiColors.orange600
+                        : ChasquiColors.neutral200,
+                    width: 3,
+                  ),
+                  boxShadow: active
+                      ? [
+                          BoxShadow(
+                            color: ChasquiColors.orange600.withValues(
+                              alpha: 0.13,
+                            ),
+                            blurRadius: 0,
+                            spreadRadius: 10,
+                          ),
+                          const BoxShadow(
+                            color: Color(0x4DF15E1F),
+                            offset: Offset(0, 8),
+                            blurRadius: 32,
+                          ),
+                        ]
+                      : const [
+                          BoxShadow(
+                            color: Color(0x14000000),
+                            offset: Offset(0, 2),
+                            blurRadius: 12,
+                          ),
+                        ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.bolt_rounded,
+                      size: 32,
+                      color: active ? Colors.white : ChasquiColors.neutral300,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      active ? 'ACTIVO' : 'SOS',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: active
+                            ? Colors.white
+                            : ChasquiColors.neutral400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            active
+                ? 'Compartiendo ubicación con servicios de emergencia'
+                : 'Toca para activar modo emergencia',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: active ? ChasquiColors.orange600 : ChasquiColors.neutral500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Esta app ayuda a navegar; no despacha ambulancias.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: ChasquiColors.neutral400),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryButton extends StatelessWidget {
+  const _CategoryButton({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final _SosCategory category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: category.label,
+      button: true,
+      selected: isSelected,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? ChasquiColors.orange600
+                  : ChasquiColors.neutral200,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
           child: Column(
             children: [
-              _buildHeader(context),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDisclaimer(),
-                      const Gap(16),
-                      _buildRouteSection(),
-                      const Gap(16),
-                      _buildMapSection(),
-                      const Gap(24),
-                      _buildContactsSection(),
-                    ],
-                  ),
+              Icon(category.icon, size: 17, color: ChasquiColors.orange600),
+              const SizedBox(height: 4),
+              Text(
+                category.label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: ChasquiColors.neutral700,
                 ),
               ),
             ],
           ),
         ),
       ),
-    )
-        .animate()
-        .fadeIn(duration: 300.ms)
-        .slideY(begin: 0.05, end: 0, curve: Curves.easeOut);
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      color: const Color(0xFF8B0000),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          const Icon(Icons.emergency, color: Colors.white, size: 28),
-          const Gap(12),
-          const Expanded(
-            child: Text(
-              'MODO URGENCIA',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.5,
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close, color: Colors.white70),
-            tooltip: 'Salir de urgencia',
-          ),
-        ],
-      ),
     );
   }
+}
 
-  Widget _buildDisclaimer() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF7B0000),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEF9A9A).withOpacity(0.4)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline, color: Color(0xFFFFCDD2), size: 18),
-          Gap(10),
-          Expanded(
-            child: Text(
-              'Esta app ayuda a navegar; no despacha ambulancias.',
-              style: TextStyle(
-                color: Color(0xFFFFCDD2),
-                fontSize: 13,
-              ),
-            ),
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      button: true,
+      selected: isSelected,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? ChasquiColors.neutral950 : ChasquiColors.neutral50,
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? null
+                : Border.all(color: ChasquiColors.neutral200),
           ),
-        ],
-      ),
-    ).animate().fadeIn(duration: 400.ms, delay: 100.ms);
-  }
-
-  Widget _buildRouteSection() {
-    final routeState = ref.watch(emergencyRouteProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'HOSPITAL MÁS CERCANO',
-          style: TextStyle(
-            color: Color(0xFFFFCDD2),
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.white : ChasquiColors.neutral500,
+            ),
           ),
         ),
-        const Gap(10),
-        routeState.when(
-          data: (response) {
-            if (response == null) {
-              return _buildRouteLoading();
-            }
-            return Column(
-              children: [
-                HospitalCard(
-                  candidate: response.recommended,
-                  isRecommended: true,
-                  index: 0,
-                ),
-                if (response.alternatives.isNotEmpty) ...[
-                  const Gap(12),
-                  const Text(
-                    'ALTERNATIVAS',
-                    style: TextStyle(
-                      color: Color(0xFFFFCDD2),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const Gap(8),
-                  ...response.alternatives
-                      .take(2)
-                      .toList()
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: HospitalCard(
-                            candidate: entry.value,
-                            isRecommended: false,
-                            index: entry.key + 1,
-                            onTap: () => ref
-                                .read(emergencyRouteProvider.notifier)
-                                .selectAlternative(entry.value),
-                          ),
-                        ),
-                      ),
-                ],
-              ],
-            );
-          },
-          loading: _buildRouteLoading,
-          error: (err, _) => _buildRouteError(err.toString()),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRouteLoading() {
-    return Container(
-      height: 100,
-      decoration: BoxDecoration(
-        color: const Color(0xFFC62828),
-        borderRadius: BorderRadius.circular(16),
       ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: Color(0xFFFFEB3B)),
-            Gap(12),
-            Text(
-              'Buscando hospital más cercano...',
-              style: TextStyle(color: Color(0xFFFFCDD2), fontSize: 13),
-            ),
-          ],
-        ),
-      ),
-    ).animate(onPlay: (c) => c.repeat()).shimmer(
-          duration: 1200.ms,
-          color: Colors.white12,
-        );
-  }
-
-  Widget _buildRouteError(String message) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF7B0000),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.white70, size: 32),
-          const Gap(8),
-          const Text(
-            'No se pudo calcular la ruta.',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-          ),
-          const Gap(4),
-          const Text(
-            'Llama al 911 para asistencia inmediata.',
-            style: TextStyle(color: Color(0xFFFFCDD2), fontSize: 13),
-          ),
-          const Gap(12),
-          OutlinedButton.icon(
-            onPressed: _init,
-            icon: const Icon(Icons.refresh, color: Color(0xFFFFEB3B)),
-            label: const Text(
-              'Reintentar',
-              style: TextStyle(color: Color(0xFFFFEB3B)),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFFFEB3B)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMapSection() {
-    final routeState = ref.watch(emergencyRouteProvider);
-    final routeResponse = routeState.value;
-    if (routeResponse == null) return const SizedBox.shrink();
-
-    final origin = _userPosition ?? _laPazCenter;
-    final destination = routeResponse.recommended.facility.position;
-    final polylinePoints = decodePolyline(routeResponse.recommended.polyline)
-        .map((c) => LatLng(c.lat, c.lng))
-        .toList();
-
-    final markers = {
-      Marker(
-        markerId: const MarkerId('origin'),
-        position: LatLng(origin.lat, origin.lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Tu ubicación'),
-      ),
-      Marker(
-        markerId: const MarkerId('hospital_recommended'),
-        position: LatLng(destination.lat, destination.lng),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-        infoWindow: InfoWindow(title: routeResponse.recommended.facility.name),
-      ),
-      ...routeResponse.alternatives.map(
-        (alt) => Marker(
-          markerId: MarkerId('hospital_${alt.facility.id}'),
-          position: LatLng(alt.facility.position.lat, alt.facility.position.lng),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: InfoWindow(title: alt.facility.name),
-          onTap: () => ref
-              .read(emergencyRouteProvider.notifier)
-              .selectAlternative(alt),
-        ),
-      ),
-    };
-
-    final polylines = polylinePoints.isNotEmpty
-        ? {
-            Polyline(
-              polylineId: const PolylineId('emergency_route'),
-              points: polylinePoints,
-              color: const Color(0xFFFFEB3B),
-              width: 5,
-            ),
-          }
-        : <Polyline>{};
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: SizedBox(
-        height: 200,
-        child: GoogleMap(
-          initialCameraPosition: CameraPosition(
-            target: LatLng(
-              (origin.lat + destination.lat) / 2,
-              (origin.lng + destination.lng) / 2,
-            ),
-            zoom: 13,
-          ),
-          markers: markers,
-          polylines: polylines,
-          zoomControlsEnabled: false,
-          myLocationEnabled: true,
-          myLocationButtonEnabled: false,
-          trafficEnabled: true,
-        ),
-      ),
-    ).animate(delay: 200.ms).fadeIn(duration: 400.ms).scaleXY(begin: 0.95);
-  }
-
-  Widget _buildContactsSection() {
-    final contactsState = ref.watch(emergencyContactsProvider);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'LLAMA AHORA',
-          style: TextStyle(
-            color: Color(0xFFFFCDD2),
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const Gap(10),
-        contactsState.when(
-          data: (contacts) => GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.1,
-            ),
-            itemCount: contacts.length,
-            itemBuilder: (_, i) => EmergencyContactCard(
-              contact: contacts[i],
-              index: i,
-            ),
-          ),
-          loading: () => const Center(
-            child: CircularProgressIndicator(color: Color(0xFFFFEB3B)),
-          ),
-          error: (_, __) => _buildFallbackContacts(),
-        ),
-      ],
-    );
-  }
-
-  // Fallback hardcodeado si el backend falla (seguridad mínima)
-  Widget _buildFallbackContacts() {
-    const fallback = [
-      EmergencyContact(name: 'Emergencias generales', number: '911'),
-      EmergencyContact(name: 'Ambulancias', number: '165'),
-      EmergencyContact(name: 'Ambulancias SAMU', number: '160'),
-      EmergencyContact(name: 'Red 114 GAMLP', number: '114'),
-    ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: fallback.length,
-      itemBuilder: (_, i) =>
-          EmergencyContactCard(contact: fallback[i], index: i),
     );
   }
 }

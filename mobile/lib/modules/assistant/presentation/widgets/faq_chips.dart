@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../app/theme.dart';
+
 const List<String> kFaqQuestions = [
   '¿A qué hora cierra el teleférico?',
   '¿Cuánto cuesta el PumaKatari?',
-  '¿Cómo uso el sistema Ayni?',
+  '¿Cómo gano Puntos Chass?',
   '¿Qué hago si hay un bloqueo?',
   '¿Cómo reporto un incidente?',
   '¿Qué hago en una emergencia?',
@@ -29,8 +31,16 @@ class FaqChips extends StatelessWidget {
           return ActionChip(
             label: Text(question),
             onPressed: () => onSelect(question),
-            backgroundColor: Colors.indigo[50],
-            labelStyle: TextStyle(color: Colors.indigo[800], fontSize: 13),
+            backgroundColor: ChasquiColors.neutral50,
+            side: const BorderSide(color: ChasquiColors.neutral200),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            labelStyle: const TextStyle(
+              color: ChasquiColors.neutral700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           )
               .animate()
               .fadeIn(duration: 300.ms, delay: (index * 50).ms)

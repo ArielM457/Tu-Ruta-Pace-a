@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:gap/gap.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/theme.dart';
+import '../../../../core/widgets/chasqui_card.dart';
 import '../../domain/emergency_entities.dart';
 
 class EmergencyContactCard extends StatelessWidget {
@@ -15,88 +16,74 @@ class EmergencyContactCard extends StatelessWidget {
   final EmergencyContact contact;
   final int index;
 
-  static const _numberIcons = {
-    '911': Icons.security,
-    '165': Icons.local_hospital,
-    '160': Icons.emergency,
-    '114': Icons.account_balance,
-  };
-
   @override
   Widget build(BuildContext context) {
-    final icon = _numberIcons[contact.number] ?? Icons.phone;
-    return GestureDetector(
-      onTap: () => _call(context),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFC62828),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEF9A9A), width: 1),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFEB3B),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.black87, size: 22),
+    return ChasquiCard(
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: ChasquiColors.yellow100,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const Gap(8),
-            Text(
-              contact.number,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-              ),
+            child: const Icon(
+              Icons.local_phone_rounded,
+              size: 17,
+              color: ChasquiColors.yellow800,
             ),
-            const Gap(4),
-            Text(
-              contact.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFFFFCDD2),
-                fontSize: 11,
-              ),
-            ),
-            const Gap(8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFEB3B),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.phone, size: 12, color: Colors.black87),
-                  Gap(4),
-                  Text(
-                    'Llamar',
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  contact.name,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: ChasquiColors.neutral500,
                   ),
-                ],
+                ),
+                Text(
+                  contact.number,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: ChasquiColors.neutral950,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Semantics(
+            label: 'Llamar a ${contact.name}',
+            button: true,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _call(context),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: ChasquiColors.yellow600,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Llamar',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: ChasquiColors.neutral950,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    )
-        .animate(delay: (index * 80).ms)
-        .fadeIn(duration: 300.ms)
-        .slideX(begin: 0.2, end: 0, curve: Curves.easeOut);
+    ).animate(delay: (index * 60).ms).fadeIn(duration: 250.ms);
   }
 
   Future<void> _call(BuildContext context) async {
