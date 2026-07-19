@@ -14,6 +14,11 @@ final incidentRepositoryProvider = Provider<IncidentRepository>((ref) {
   );
 });
 
+final citywideActiveIncidentsProvider =
+    FutureProvider.autoDispose<List<Incident>>(
+  (ref) => ref.read(incidentRepositoryProvider).getActive(),
+);
+
 // ── Active incidents (loaded by visible bbox) ──────────────────────────────
 
 class ActiveIncidentsNotifier extends AsyncNotifier<List<Incident>> {

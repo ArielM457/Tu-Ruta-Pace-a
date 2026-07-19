@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/types/coordinate.dart';
 import '../../profile/domain/user_profile.dart';
+import '../domain/place_suggestion.dart';
 import '../domain/route_entities.dart';
 import '../domain/routing_repository.dart';
 import 'route_recommendation_mapper.dart';
@@ -32,6 +33,22 @@ class ApiRoutingRepository implements RoutingRepository {
       return routeRecommendationFromJson(
         response.data as Map<String, dynamic>,
       );
+    } on DioException catch (exception) {
+      throw toApiException(exception);
+    }
+  }
+
+  @override
+  Future<List<PlaceSuggestion>> autocompletePlaces(String query) async {
+    try {
+      final response = await _apiClient.get<dynamic>(
+        '/routing/places/autocomplete',
+        queryParameters: {'q': query},
+      );
+      return (response.data as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map(PlaceSuggestion.fromJson)
+          .toList();
     } on DioException catch (exception) {
       throw toApiException(exception);
     }

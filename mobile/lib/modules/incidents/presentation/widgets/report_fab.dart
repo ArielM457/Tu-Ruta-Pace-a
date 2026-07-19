@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
+import '../../../../app/theme.dart';
 import 'report_bottom_sheet.dart';
 
 class ReportFab extends StatelessWidget {
@@ -11,8 +12,8 @@ class ReportFab extends StatelessWidget {
     return FloatingActionButton.small(
       heroTag: 'report_fab',
       tooltip: 'Reportar incidente',
-      backgroundColor: Colors.indigo[700],
-      foregroundColor: Colors.white,
+      backgroundColor: ChasquiColors.neutral950,
+      foregroundColor: ChasquiColors.yellow600,
       onPressed: () => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,

@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
+import '../../../../core/types/coordinate.dart';
+import '../../../../core/widgets/chasqui_card.dart';
+import '../../../../core/widgets/chasqui_tag.dart';
+import '../../../../core/widgets/chasqui_top_bar.dart';
 import '../../../community/presentation/providers/collaboration_providers.dart';
 import '../../../community/presentation/widgets/ask_question_sheet.dart';
 import '../../../community/presentation/widgets/share_optin_sheet.dart';
+import '../../../profile/presentation/providers/favorites_providers.dart';
 import '../../../trips/presentation/providers/trips_providers.dart';
 import '../../data/route_recommendation_mapper.dart';
 import '../../domain/route_entities.dart';
 import '../providers/routing_providers.dart';
+import '../widgets/route_option_display.dart';
 import '../widgets/transport_mode_ui.dart';
 
 class RouteDetailScreen extends ConsumerWidget {
@@ -40,11 +46,10 @@ class RouteDetailScreen extends ConsumerWidget {
       return;
     }
 
-    messenger.showSnackBar(
-      const SnackBar(content: Text('Viaje iniciado. ¡Buen viaje!')),
-    );
-
     final trip = ref.read(startTripControllerProvider).value;
+    if (trip == null) return;
+    ref.read(activeTripProvider.notifier).start(trip, option);
+
     final firstTransitLeg = option.legs.firstWhere(
       (leg) => leg.mode != TransportMode.walk && leg.lineId != null,
       orElse: () => const RouteLeg(
@@ -57,7 +62,7 @@ class RouteDetailScreen extends ConsumerWidget {
       ),
     );
 
-    if (trip != null && firstTransitLeg.lineId != null && context.mounted) {
+    if (firstTransitLeg.lineId != null && context.mounted) {
       final wantsToShare = await ShareOptInSheet.show(
         context,
         lineLabel: firstTransitLeg.lineName ?? 'tu línea de transporte',
@@ -81,7 +86,7 @@ class RouteDetailScreen extends ConsumerWidget {
     }
 
     if (context.mounted) {
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.map);
     }
   }
 
@@ -99,7 +104,7 @@ class RouteDetailScreen extends ConsumerWidget {
     final startTripState = ref.watch(startTripControllerProvider);
     if (option == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Detalle de ruta')),
+        appBar: const ChasquiTopBar(title: 'Detalle de ruta'),
         body: Center(
           child: FilledButton(
             onPressed: () => context.go(AppRoutes.routeOptions),
@@ -109,56 +114,139 @@ class RouteDetailScreen extends ConsumerWidget {
       );
     }
     final theme = Theme.of(context);
+    final tag = classifyRouteOptionTags([option])[option.id] ??
+        RouteOptionTagKind.combined;
+    final transfers = countRouteTransfers(option);
+    final name = compositeRouteName(option);
+
+    final destination = ref.watch(routeRequestProvider).destination;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Detalle de ruta'),
-        leading: BackButton(
-          onPressed: () => context.go(AppRoutes.routeOptions),
-        ),
+      appBar: ChasquiTopBar(
+        title: 'Detalle de ruta',
+        onBack: () => context.pop(),
+        trailing: destination == null
+            ? null
+            : IconButton(
+                tooltip: 'Guardar como favorita',
+                icon: const Icon(Icons.star_outline_rounded),
+                onPressed: () => _SaveFavoriteDialog.show(context, ref, destination),
+              ),
       ),
       body: Column(
         children: [
-          SizedBox(
-            height: 240,
-            child: _RouteMap(option: option),
-          ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                Row(
-                  children: [
-                    Text(
-                      '${option.totalDurationMinutes} min',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      formatCostBs(option.totalCostBs),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: theme.colorScheme.primary,
+                ChasquiCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ChasquiTag(
+                            label: tag.label,
+                            background: tag.background,
+                            foreground: tag.foreground,
+                          ),
+                          Text(
+                            transfers == 0
+                                ? 'Sin transbordos'
+                                : '$transfers transbordo${transfers > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: ChasquiColors.neutral500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(formatDistance(option.totalDistanceMeters)),
-                  ],
-                ),
-                if (option.avoidsAnyIncident)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Esta ruta evita bloqueos activos en la ciudad',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
+                      const SizedBox(height: 12),
+                      Text(name, style: theme.textTheme.titleSmall),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Tiempo total',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: ChasquiColors.neutral500,
+                                  ),
+                                ),
+                                Text.rich(
+                                  TextSpan(
+                                    text: '${option.totalDurationMinutes}',
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w900,
+                                      color: ChasquiColors.neutral950,
+                                    ),
+                                    children: const [
+                                      TextSpan(
+                                        text: ' min',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.normal,
+                                          color: ChasquiColors.neutral950,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Costo total',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: ChasquiColors.neutral500,
+                                  ),
+                                ),
+                                Text(
+                                  formatCostBs(option.totalCostBs),
+                                  style: const TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w900,
+                                    color: ChasquiColors.yellow700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
+                      if (option.avoidsAnyIncident) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          'Esta ruta evita bloqueos activos en la ciudad',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: ChasquiColors.yellow800,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                const SizedBox(height: 16),
-                for (final leg in option.legs)
+                ),
+                const SizedBox(height: 20),
+                Text('PASO A PASO', style: theme.textTheme.labelSmall),
+                const SizedBox(height: 12),
+                for (int index = 0; index < option.legs.length; index++)
                   _LegTile(
-                    leg: leg,
-                    onAskCommunity: leg.mode != TransportMode.walk && leg.lineId != null
-                        ? () => _askCommunity(context, leg)
+                    leg: option.legs[index],
+                    isLast: index == option.legs.length - 1,
+                    onAskCommunity: option.legs[index].mode != TransportMode.walk &&
+                            option.legs[index].lineId != null
+                        ? () => _askCommunity(context, option.legs[index])
                         : null,
                   ),
               ],
@@ -166,19 +254,18 @@ class RouteDetailScreen extends ConsumerWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: FilledButton.icon(
-                icon: const Icon(Icons.play_arrow),
-                label: startTripState.isLoading
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Iniciar viaje'),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: FilledButton(
                 onPressed: startTripState.isLoading
                     ? null
                     : () => _startTrip(context, ref, option),
+                child: startTripState.isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Iniciar navegación'),
               ),
             ),
           ),
@@ -188,150 +275,178 @@ class RouteDetailScreen extends ConsumerWidget {
   }
 }
 
-class _RouteMap extends StatelessWidget {
-  const _RouteMap({required this.option});
+class _SaveFavoriteDialog extends StatefulWidget {
+  const _SaveFavoriteDialog();
 
-  final RouteOption option;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final legPaths = [
-      for (final leg in option.legs)
-        (leg: leg, path: leg.path.map((point) => LatLng(point.lat, point.lng)).toList()),
-    ];
-    final allPoints = [
-      for (final legPath in legPaths) ...legPath.path,
-    ];
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(
-        target: allPoints.isEmpty
-            ? const LatLng(-16.4957, -68.1335)
-            : allPoints[allPoints.length ~/ 2],
-        zoom: 13,
+  static Future<void> show(
+    BuildContext context,
+    WidgetRef ref,
+    Coordinate destination,
+  ) async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => const _SaveFavoriteDialog(),
+    );
+    if (name == null || name.trim().isEmpty || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await ref
+        .read(favoritesProvider.notifier)
+        .add(name.trim(), destination);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          ok ? 'Guardado en tus favoritas' : 'No se pudo guardar la favorita',
+        ),
       ),
-      zoomControlsEnabled: false,
-      myLocationButtonEnabled: false,
-      onMapCreated: (controller) {
-        final bounds = _boundsFor(allPoints);
-        if (bounds != null) {
-          controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 40));
-        }
-      },
-      polylines: {
-        for (int index = 0; index < legPaths.length; index++)
-          if (legPaths[index].path.length >= 2)
-            Polyline(
-              polylineId: PolylineId('leg-$index'),
-              points: legPaths[index].path,
-              color: routeLegColor(legPaths[index].leg, colorScheme),
-              width: 5,
-              patterns: legPaths[index].leg.mode == TransportMode.walk
-                  ? [PatternItem.dot, PatternItem.gap(8)]
-                  : const [],
-            ),
-      },
-      markers: {
-        if (allPoints.isNotEmpty)
-          Marker(
-            markerId: const MarkerId('origin'),
-            position: allPoints.first,
-            infoWindow: const InfoWindow(title: 'Origen'),
-          ),
-        if (allPoints.length > 1)
-          Marker(
-            markerId: const MarkerId('destination'),
-            position: allPoints.last,
-            infoWindow: const InfoWindow(title: 'Destino'),
-          ),
-      },
     );
   }
 
-  LatLngBounds? _boundsFor(List<LatLng> points) {
-    if (points.length < 2) {
-      return null;
-    }
-    var south = points.first.latitude;
-    var north = points.first.latitude;
-    var west = points.first.longitude;
-    var east = points.first.longitude;
-    for (final point in points) {
-      if (point.latitude < south) south = point.latitude;
-      if (point.latitude > north) north = point.latitude;
-      if (point.longitude < west) west = point.longitude;
-      if (point.longitude > east) east = point.longitude;
-    }
-    return LatLngBounds(
-      southwest: LatLng(south, west),
-      northeast: LatLng(north, east),
+  @override
+  State<_SaveFavoriteDialog> createState() => _SaveFavoriteDialogState();
+}
+
+class _SaveFavoriteDialogState extends State<_SaveFavoriteDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Guardar como favorita'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(hintText: 'Ej: Casa, Trabajo'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Guardar'),
+        ),
+      ],
     );
   }
 }
 
 class _LegTile extends StatelessWidget {
-  const _LegTile({required this.leg, this.onAskCommunity});
+  const _LegTile({required this.leg, required this.isLast, this.onAskCommunity});
 
   final RouteLeg leg;
+  final bool isLast;
   final VoidCallback? onAskCommunity;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final legColor = routeLegColor(leg, theme.colorScheme);
     final lineDetail = [
       if (leg.lineName != null) leg.lineName!,
       if (leg.boardStop != null) 'Sube en ${leg.boardStop!.name}',
       if (leg.alightStop != null) 'Baja en ${leg.alightStop!.name}',
     ].join(' · ');
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+
+    return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Column(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: legColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+                  color: ChasquiColors.yellow100,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(leg.mode.icon, size: 20, color: legColor),
+                child: Icon(
+                  leg.mode.icon,
+                  size: 14,
+                  color: ChasquiColors.yellow800,
+                ),
               ),
-              Container(width: 3, height: 28, color: legColor),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 1,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: ChasquiColors.neutral200,
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(leg.instruction, style: theme.textTheme.bodyLarge),
-                if (lineDetail.isNotEmpty)
-                  Text(lineDetail, style: theme.textTheme.bodySmall),
-                Text(
-                  '${leg.durationMinutes} min · ${formatCostBs(leg.costBs)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.outline,
-                  ),
-                ),
-                if (onAskCommunity != null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
-                      onPressed: onAskCommunity,
-                      icon: const Icon(Icons.forum_outlined, size: 16),
-                      label: const Text('Preguntar a la comunidad'),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 32),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    leg.instruction,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-              ],
+                  if (lineDetail.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(lineDetail, style: theme.textTheme.bodySmall),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 11,
+                          color: ChasquiColors.neutral400,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          '${leg.durationMinutes} min',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: ChasquiColors.neutral500,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          leg.costBs > 0 ? formatCostBs(leg.costBs) : 'Gratis',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: leg.costBs > 0
+                                ? ChasquiColors.yellow700
+                                : ChasquiColors.successText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (onAskCommunity != null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: onAskCommunity,
+                        icon: const Icon(Icons.forum_outlined, size: 16),
+                        label: const Text('Preguntar a la comunidad'),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],

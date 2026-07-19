@@ -19,10 +19,18 @@ class Trip {
     required this.status,
     required this.startedAt,
     this.finishedAt,
+    this.originName,
+    this.destinationName,
+    this.totalCostBs,
+    this.lastLegPolyline,
   });
 
   final String id;
   final TripStatus status;
   final DateTime startedAt;
   final DateTime? finishedAt;
+  final String? originName;
+  final String? destinationName;
+  final double? totalCostBs;
+  final String? lastLegPolyline;
 }

@@ -5,6 +5,7 @@ import '../../../../core/types/coordinate.dart';
 import '../../../profile/domain/user_profile.dart';
 import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../data/api_routing_repository.dart';
+import '../../domain/place_suggestion.dart';
 import '../../domain/route_entities.dart';
 import '../../domain/routing_repository.dart';
 
@@ -68,6 +69,14 @@ class RouteRequestController extends Notifier<RouteRequestState> {
     state = RouteRequestState(origin: state.origin, priority: state.priority);
   }
 }
+
+final placeAutocompleteProvider =
+    FutureProvider.family.autoDispose<List<PlaceSuggestion>, String>(
+  (ref, query) async {
+    if (query.trim().length < 2) return [];
+    return ref.watch(routingRepositoryProvider).autocompletePlaces(query);
+  },
+);
 
 final recommendationsProvider =
     FutureProvider.autoDispose<RouteRecommendation>((ref) async {

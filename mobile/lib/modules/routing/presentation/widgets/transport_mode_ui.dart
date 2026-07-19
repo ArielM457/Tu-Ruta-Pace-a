@@ -52,8 +52,7 @@ Color? _parseHexColor(String? hexColor) {
 }
 
 String formatCostBs(double costBs) {
-  final hasDecimals = costBs != costBs.roundToDouble();
-  return 'Bs ${hasDecimals ? costBs.toStringAsFixed(1) : costBs.toStringAsFixed(0)}';
+  return 'Bs. ${costBs.toStringAsFixed(2)}';
 }
 
 String formatDistance(int distanceMeters) {

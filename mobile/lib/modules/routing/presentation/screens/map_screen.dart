@@ -4,87 +4,270 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
 import '../../../../core/location/location_providers.dart';
 import '../../../../core/types/coordinate.dart';
+import '../../../../core/widgets/chasqui_card.dart';
+import '../../../../core/widgets/chasqui_top_bar.dart';
 import '../../../community/presentation/providers/collaboration_providers.dart';
 import '../../../community/presentation/providers/community_providers.dart';
-import '../../../community/presentation/widgets/ayni_badge.dart';
 import '../../../community/presentation/widgets/help_popup.dart';
 import '../../../community/presentation/widgets/sharing_chip.dart';
-import '../../../emergency/presentation/widgets/sos_fab.dart';
 import '../../../incidents/domain/incident_entities.dart';
 import '../../../incidents/presentation/providers/incident_providers.dart';
 import '../../../incidents/presentation/widgets/incident_detail_sheet.dart';
 import '../../../incidents/presentation/widgets/report_fab.dart';
 import '../../../profile/domain/user_profile.dart';
-import '../../../profile/presentation/providers/profile_providers.dart';
 import '../../../profile/presentation/widgets/preference_options.dart';
+import '../../../trips/presentation/providers/trips_providers.dart';
+import '../../domain/route_entities.dart';
 import '../providers/routing_providers.dart';
+import '../widgets/transport_mode_ui.dart';
 
 const CameraPosition _laPazInitialCamera = CameraPosition(
   target: LatLng(-16.4957, -68.1335),
   zoom: 13,
 );
 
-class HomeMapScreen extends ConsumerWidget {
-  const HomeMapScreen({super.key});
+class MapScreen extends ConsumerWidget {
+  const MapScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isGovernment = ref.watch(
-      profileControllerProvider.select(
-        (state) => state.value?.role == UserRole.government,
-      ),
-    );
+    final activeTrip = ref.watch(activeTripProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ayni Ruta'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: AyniBadge(onTap: () => context.push(AppRoutes.community)),
-          ),
-          if (isGovernment)
-            IconButton(
-              tooltip: 'Panel de gobierno',
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              onPressed: () => context.push(AppRoutes.government),
-            ),
-          IconButton(
-            tooltip: 'Asistente',
-            icon: const Icon(Icons.smart_toy_outlined),
-            onPressed: () => context.push(AppRoutes.assistant),
-          ),
-          IconButton(
-            tooltip: 'Mi perfil',
-            icon: const Icon(Icons.person),
-            onPressed: () => context.go(AppRoutes.profile),
-          ),
-        ],
+      appBar: ChasquiTopBar(
+        title: activeTrip != null ? 'Viaje en curso' : 'Mapa de La Paz',
+        subtitle: activeTrip != null
+            ? null
+            : 'Tráfico e incidentes en vivo',
+        onBack: () =>
+            context.canPop() ? context.pop() : context.go(AppRoutes.home),
       ),
-      body: const _HomeMapView(),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: const [
-          ReportFab(),
-          SizedBox(height: 10),
-          SosFab(),
-        ],
-      ),
+      body: activeTrip != null
+          ? _TripInProgressView(activeTrip: activeTrip)
+          : const _MapView(),
+      floatingActionButton: const ReportFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
 
-class _HomeMapView extends ConsumerStatefulWidget {
-  const _HomeMapView();
+class _TripInProgressView extends ConsumerWidget {
+  const _TripInProgressView({required this.activeTrip});
+
+  final ActiveTrip activeTrip;
+
+  Future<void> _finishTrip(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final finished = await ref
+        .read(finishTripControllerProvider.notifier)
+        .finishTrip(activeTrip.trip.id);
+    if (!finished) {
+      final error = ref.read(finishTripControllerProvider).error;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error?.toString() ?? 'No se pudo finalizar el viaje. Intenta de nuevo.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (ref.read(activeShareProvider) != null) {
+      await ref.read(activeShareProvider.notifier).stop();
+    }
+    ref.read(activeTripProvider.notifier).clear();
+    ref.read(routeRequestProvider.notifier).clearDestination();
+    ref.invalidate(recentTripsProvider);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Viaje finalizado. ¡Gracias por viajar con Chasqui!')),
+    );
+  }
 
   @override
-  ConsumerState<_HomeMapView> createState() => _HomeMapViewState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final option = activeTrip.option;
+    final isSharing = ref.watch(activeShareProvider) != null;
+    final finishState = ref.watch(finishTripControllerProvider);
+    final nextLeg = option.legs.first;
+
+    return Stack(
+      children: [
+        _TripRouteMap(option: option),
+        Positioned(
+          top: 12,
+          left: 12,
+          right: 12,
+          child: isSharing
+              ? const Align(
+                  alignment: Alignment.centerLeft,
+                  child: SharingChip(),
+                )
+              : const SizedBox.shrink(),
+        ),
+        Positioned(
+          left: 12,
+          right: 12,
+          bottom: 16,
+          child: ChasquiCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PRÓXIMO PASO',
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: ChasquiColors.yellow100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        nextLeg.mode.icon,
+                        size: 16,
+                        color: ChasquiColors.yellow800,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        nextLeg.instruction,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: ChasquiColors.neutral950,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                FilledButton(
+                  onPressed: finishState.isLoading
+                      ? null
+                      : () => _finishTrip(context, ref),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: ChasquiColors.orange600,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: finishState.isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Finalizar viaje'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _HomeMapViewState extends ConsumerState<_HomeMapView> {
+class _TripRouteMap extends StatelessWidget {
+  const _TripRouteMap({required this.option});
+
+  final RouteOption option;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final legPaths = [
+      for (final leg in option.legs)
+        (
+          leg: leg,
+          path: leg.path.map((point) => LatLng(point.lat, point.lng)).toList(),
+        ),
+    ];
+    final allPoints = [for (final legPath in legPaths) ...legPath.path];
+
+    return GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: allPoints.isEmpty
+            ? const LatLng(-16.4957, -68.1335)
+            : allPoints[allPoints.length ~/ 2],
+        zoom: 14,
+      ),
+      zoomControlsEnabled: false,
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      onMapCreated: (controller) {
+        final bounds = _boundsFor(allPoints);
+        if (bounds != null) {
+          controller.animateCamera(CameraUpdate.newLatLngBounds(bounds, 60));
+        }
+      },
+      polylines: {
+        for (int index = 0; index < legPaths.length; index++)
+          if (legPaths[index].path.length >= 2)
+            Polyline(
+              polylineId: PolylineId('leg-$index'),
+              points: legPaths[index].path,
+              color: routeLegColor(legPaths[index].leg, colorScheme),
+              width: 5,
+              patterns: legPaths[index].leg.mode == TransportMode.walk
+                  ? [PatternItem.dot, PatternItem.gap(8)]
+                  : const [],
+            ),
+      },
+      markers: {
+        if (allPoints.isNotEmpty)
+          Marker(
+            markerId: const MarkerId('origin'),
+            position: allPoints.first,
+            infoWindow: const InfoWindow(title: 'Origen'),
+          ),
+        if (allPoints.length > 1)
+          Marker(
+            markerId: const MarkerId('destination'),
+            position: allPoints.last,
+            infoWindow: const InfoWindow(title: 'Destino'),
+          ),
+      },
+    );
+  }
+
+  LatLngBounds? _boundsFor(List<LatLng> points) {
+    if (points.length < 2) return null;
+    var south = points.first.latitude;
+    var north = points.first.latitude;
+    var west = points.first.longitude;
+    var east = points.first.longitude;
+    for (final point in points) {
+      if (point.latitude < south) south = point.latitude;
+      if (point.latitude > north) north = point.latitude;
+      if (point.longitude < west) west = point.longitude;
+      if (point.longitude > east) east = point.longitude;
+    }
+    return LatLngBounds(
+      southwest: LatLng(south, west),
+      northeast: LatLng(north, east),
+    );
+  }
+}
+
+class _MapView extends ConsumerStatefulWidget {
+  const _MapView();
+
+  @override
+  ConsumerState<_MapView> createState() => _MapViewState();
+}
+
+class _MapViewState extends ConsumerState<_MapView> {
   GoogleMapController? _mapController;
 
   @override
@@ -301,7 +484,7 @@ class _HomeMapViewState extends ConsumerState<_HomeMapView> {
                 final origin = currentPosition.value;
                 if (origin == null) return;
                 ref.read(routeRequestProvider.notifier).setOrigin(origin);
-                context.go(AppRoutes.routeOptions);
+                context.push(AppRoutes.routeOptions);
               },
             ),
           ),
