@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
+import '../../../../core/widgets/chasqui_top_bar.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/auth_form_error.dart';
 
@@ -43,9 +45,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iniciar sesión'),
-        leading: BackButton(onPressed: () => context.go(AppRoutes.welcome)),
+      appBar: ChasquiTopBar(
+        title: 'Iniciar sesión',
+        onBack: () => context.go(AppRoutes.welcome),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -55,6 +57,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Center(
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    alignment: Alignment.center,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: ChasquiColors.yellow600,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.navigation,
+                      size: 26,
+                      color: ChasquiColors.neutral950,
+                    ),
+                  ),
+                ),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,

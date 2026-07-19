@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
 
 class _WelcomeSlide {
   const _WelcomeSlide({
@@ -24,9 +25,9 @@ const List<_WelcomeSlide> _slides = [
   ),
   _WelcomeSlide(
     icon: Icons.handshake,
-    title: 'Ayni: dar y recibir',
+    title: 'Colabora: dar y recibir',
     description:
-        'Comparte tu ubicación mientras viajas y responde preguntas de otros para ganar puntos; úsalos para preguntar dónde viene tu transporte.',
+        'Comparte tu ubicación mientras viajas y responde preguntas de otros para ganar Puntos Chass; úsalos para preguntar dónde viene tu transporte.',
   ),
   _WelcomeSlide(
     icon: Icons.alt_route,
@@ -59,9 +60,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
           child: Column(
             children: [
+              const _ChasquiWordmark(),
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
@@ -89,13 +91,53 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Ayni Ruta — movilidad colaborativa para La Paz',
+                'Movilidad colaborativa para La Paz',
                 style: theme.textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ChasquiWordmark extends StatelessWidget {
+  const _ChasquiWordmark();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: ChasquiColors.yellow600,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.navigation,
+              size: 16,
+              color: ChasquiColors.neutral950,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'CHASQUI',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 3,
+              color: ChasquiColors.neutral950,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -116,8 +158,21 @@ class _SlideView extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(slide.icon, size: 72, color: theme.colorScheme.primary),
-              const SizedBox(height: 24),
+              Container(
+                width: 120,
+                height: 120,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: ChasquiColors.yellow100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  slide.icon,
+                  size: 56,
+                  color: ChasquiColors.yellow800,
+                ),
+              ),
+              const SizedBox(height: 32),
               Text(
                 slide.title,
                 style: theme.textTheme.headlineSmall,
