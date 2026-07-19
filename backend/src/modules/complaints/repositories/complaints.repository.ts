@@ -5,22 +5,28 @@ import { SupabaseService } from '../../../integrations/supabase/supabase.service
 export interface ComplaintRecord {
   id: string;
   user_id: string;
+  complaint_type: string;
   vehicle_identifier: string | null;
   transport_kind: string;
+  route_label: string | null;
   line_id: string | null;
   stop_id: string | null;
   complaint: string;
+  photo_url: string | null;
   status: string;
   created_at: string;
 }
 
 export interface NewComplaintRecord {
   user_id: string;
+  complaint_type: string;
   vehicle_identifier: string | null;
   transport_kind: string;
+  route_label: string | null;
   line_id: string | null;
   stop_id: string | null;
   complaint: string;
+  photo_url: string | null;
 }
 
 @Injectable()

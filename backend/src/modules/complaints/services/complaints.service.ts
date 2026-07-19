@@ -3,6 +3,7 @@ import { DomainException } from '../../../common/exceptions/domain.exception';
 import {
   ComplaintStatus,
   ComplaintTransportKind,
+  ComplaintType,
 } from '../../../common/types/domain';
 import { TransportsService } from '../../transports/services/transports.service';
 import { CreateComplaintDto } from '../dto/create-complaint.dto';
@@ -13,11 +14,14 @@ import {
 
 export interface Complaint {
   id: string;
+  type: ComplaintType;
   vehicleIdentifier: string | null;
   transportKind: ComplaintTransportKind;
+  routeLabel: string | null;
   lineId: string | null;
   stopId: string | null;
   complaint: string;
+  photoUrl: string | null;
   status: ComplaintStatus;
   createdAt: string;
 }
@@ -37,11 +41,14 @@ export class ComplaintsService {
     await this.assertLineAndStopAreValid(dto);
     const record = await this.complaintsRepository.create({
       user_id: userId,
+      complaint_type: dto.type,
       vehicle_identifier: dto.vehicleIdentifier ?? null,
-      transport_kind: dto.transportKind,
+      transport_kind: dto.transportKind ?? ComplaintTransportKind.Minibus,
+      route_label: dto.routeLabel ?? null,
       line_id: dto.lineId ?? null,
       stop_id: dto.stopId ?? null,
       complaint: dto.complaint,
+      photo_url: dto.photoUrl ?? null,
     });
     return this.toComplaint(record);
   }
@@ -52,10 +59,10 @@ export class ComplaintsService {
   }
 
   private assertVehicleOrLinePresent(dto: CreateComplaintDto): void {
-    if (!dto.vehicleIdentifier && !dto.lineId) {
+    if (!dto.vehicleIdentifier && !dto.lineId && !dto.routeLabel) {
       throw new DomainException(
         'VEHICLE_OR_LINE_REQUIRED',
-        'Indica la placa o número del vehículo, o la línea del transporte',
+        'Indica la placa o conductor, la ruta/línea, o selecciona una línea registrada',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -87,11 +94,14 @@ export class ComplaintsService {
   private toComplaint(record: ComplaintRecord): Complaint {
     return {
       id: record.id,
+      type: record.complaint_type as ComplaintType,
       vehicleIdentifier: record.vehicle_identifier,
       transportKind: record.transport_kind as ComplaintTransportKind,
+      routeLabel: record.route_label,
       lineId: record.line_id,
       stopId: record.stop_id,
       complaint: record.complaint,
+      photoUrl: record.photo_url,
       status: record.status as ComplaintStatus,
       createdAt: record.created_at,
     };

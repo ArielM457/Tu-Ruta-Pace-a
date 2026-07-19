@@ -86,9 +86,18 @@ export enum ComplaintTransportKind {
   Taxi = 'taxi',
 }
 
+export enum ComplaintType {
+  AggressiveDriver = 'aggressive_driver',
+  Overcharge = 'overcharge',
+  RouteNotRespected = 'route_not_respected',
+  PoorVehicleCondition = 'poor_vehicle_condition',
+  Harassment = 'harassment',
+  Other = 'other',
+}
+
 export enum ComplaintStatus {
-  Submitted = 'submitted',
   InReview = 'in_review',
+  Resolved = 'resolved',
   Closed = 'closed',
 }
 
