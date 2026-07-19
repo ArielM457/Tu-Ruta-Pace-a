@@ -141,6 +141,7 @@ export class CommunityQuestionsService {
       questionId,
       userId,
       dto.content,
+      this.appConfig.ayniAnswerReward,
     );
     const profile = await this.usersService.getProfile(userId);
     return {

@@ -12,6 +12,7 @@ export enum AyniReason {
   AnsweredQuestion = 'answered_question',
   QuestionRefunded = 'question_refunded',
   VerifiedReport = 'verified_report',
+  ConfirmedIncident = 'confirmed_incident',
   Bonus = 'bonus',
 }
 
@@ -40,6 +41,22 @@ export class AyniPointsService {
 
   get queryCost(): number {
     return this.appConfig.ayniQueryCost;
+  }
+
+  get questionCost(): number {
+    return this.appConfig.ayniQuestionCost;
+  }
+
+  get answerReward(): number {
+    return this.appConfig.ayniAnswerReward;
+  }
+
+  get verifiedReportReward(): number {
+    return this.appConfig.ayniVerifiedReportReward;
+  }
+
+  get confirmedIncidentReward(): number {
+    return this.appConfig.ayniConfirmedIncidentReward;
   }
 
   async award(

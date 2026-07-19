@@ -110,7 +110,26 @@ export class IncidentsService {
       this.appConfig.incidentResolveThreshold,
     );
     await this.rewardReporterIfJustVerified(record);
+    await this.rewardConfirmingVoter(record, userId, vote);
     return this.toIncident(record);
+  }
+
+  private async rewardConfirmingVoter(
+    record: IncidentRecord,
+    voterId: string,
+    vote: IncidentVote,
+  ): Promise<void> {
+    const isThirdPartyConfirmation =
+      vote === IncidentVote.Confirm && voterId !== record.reporter_id;
+    if (!isThirdPartyConfirmation) {
+      return;
+    }
+    await this.ayniPointsService.award(
+      voterId,
+      this.appConfig.ayniConfirmedIncidentReward,
+      AyniReason.ConfirmedIncident,
+      record.id,
+    );
   }
 
   private async rewardReporterIfJustVerified(

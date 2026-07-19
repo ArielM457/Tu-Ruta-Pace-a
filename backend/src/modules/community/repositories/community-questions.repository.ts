@@ -77,6 +77,7 @@ export class CommunityQuestionsRepository {
     questionId: string,
     responderId: string,
     content: string,
+    rewardAmount: number,
   ): Promise<CommunityAnswerRecord> {
     const { data, error } = await this.supabaseService.client.rpc(
       'answer_community_question',
@@ -84,6 +85,7 @@ export class CommunityQuestionsRepository {
         p_question_id: questionId,
         p_responder_id: responderId,
         p_content: content,
+        p_reward_amount: rewardAmount,
       },
     );
     if (error) {

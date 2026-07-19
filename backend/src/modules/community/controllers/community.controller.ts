@@ -5,23 +5,51 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../../../common/types/domain';
 import { AnswerQuestionDto } from '../dto/answer-question.dto';
 import { CreateQuestionDto } from '../dto/create-question.dto';
+import { FeedQueryDto } from '../dto/feed-query.dto';
+import { RankingQueryDto } from '../dto/ranking-query.dto';
 import {
   AnswerQuestionResult,
   CommunityQuestion,
   CommunityQuestionsService,
   LineActivity,
 } from '../services/community-questions.service';
+import {
+  CommunityStatsService,
+  FeedEntry,
+  PointsConfigResponse,
+  RankingResponse,
+} from '../services/community-stats.service';
 
 @Controller('community')
 export class CommunityController {
   constructor(
     private readonly communityQuestionsService: CommunityQuestionsService,
+    private readonly communityStatsService: CommunityStatsService,
   ) {}
+
+  @Get('ranking')
+  getRanking(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() _query: RankingQueryDto,
+  ): Promise<RankingResponse> {
+    return this.communityStatsService.getWeeklyRanking(user.userId);
+  }
+
+  @Get('feed')
+  getFeed(@Query() query: FeedQueryDto): Promise<FeedEntry[]> {
+    return this.communityStatsService.getFeed(query.limit);
+  }
+
+  @Get('points-config')
+  getPointsConfig(): Promise<PointsConfigResponse> {
+    return Promise.resolve(this.communityStatsService.getPointsConfig());
+  }
 
   @Get('lines/:lineId/activity')
   getLineActivity(
