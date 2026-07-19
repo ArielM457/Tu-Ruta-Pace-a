@@ -43,6 +43,10 @@ class SupabaseAuthRepository implements AuthRepository {
     switch (exception.code) {
       case 'invalid_credentials':
         return 'Correo o contraseña incorrectos';
+      case 'email_address_invalid':
+        return 'Ese correo no es válido para registrarse; usa un correo real (ej. tu Gmail)';
+      case 'signup_disabled':
+        return 'El registro de cuentas nuevas está desactivado en este proyecto';
       case 'email_exists':
       case 'user_already_exists':
         return 'Ya existe una cuenta con este correo';

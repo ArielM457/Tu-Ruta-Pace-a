@@ -109,23 +109,30 @@ class _SlideView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(slide.icon, size: 96, color: theme.colorScheme.primary),
-        const SizedBox(height: 32),
-        Text(
-          slide.title,
-          style: theme.textTheme.headlineSmall,
-          textAlign: TextAlign.center,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(slide.icon, size: 72, color: theme.colorScheme.primary),
+              const SizedBox(height: 24),
+              Text(
+                slide.title,
+                style: theme.textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                slide.description,
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        Text(
-          slide.description,
-          style: theme.textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 }
