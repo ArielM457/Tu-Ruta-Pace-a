@@ -1,4 +1,4 @@
-# Ayni Ruta — Recursos de Azure
+# Chasqui — Recursos de Azure
 
 > Supabase cubre **base de datos (Postgres), autenticación y almacenamiento de archivos**. Todo lo demás corre en Azure. Este documento lista qué recursos de Azure necesita el proyecto y para qué sirve cada uno.
 

@@ -1,4 +1,4 @@
-# Ayni Ruta — Diseño del Frontend (Flutter)
+# Chasqui — Diseño del Frontend (Flutter)
 
 > Este documento toma los flujos de [01-flujos-y-hu.md](01-flujos-y-hu.md) y los baja al diseño de la app móvil Flutter, organizado según el **desglose de pantallas definido en FigJam (julio 2026)**: Inicio, Rutas, Chatbot, Emergencias, Denuncias, Perfil y Comunidad/apoyo. Incluye el contexto del backend ([02-backend.md](02-backend.md)) porque el back se desarrolla primero: el front se construye contra los contratos que se definen ahí. **Todos los endpoints listados ya están implementados en el backend.**
 
@@ -24,7 +24,7 @@
 | Gobierno | `GET /government/congestion/summary`, `GET /government/incidents` |
 
 - **Objeto central `RouteOption`** (respuesta de `/routing/recommendations`): lista de `legs`, cada leg con `mode` (`walk | cable_car | pumakatari | minibus | micro | trufi | taxi`), `durationMinutes`, `distanceMeters`, `costBs`, `polyline`, y datos de línea/paradas cuando aplica. La opción trae `totalDurationMinutes`, `totalCostBs`, `safetyScore` y `avoidsIncidents`. **El reordenado por prioridad (tiempo/costo/seguridad) se hace en el cliente sin volver a llamar a la API.**
-- **Puntos Ayni**: la economía de puntos es **persona a persona**. Se ganan respondiendo preguntas de la comunidad (`answered_question`), compartiendo ubicación durante un viaje (`shared_location`) y reportando bloqueos que se verifican (`verified_report`); se gastan haciendo preguntas a personas activas en una ruta (`asked_question`). Si no hay personas activas la pregunta no se cobra (`409 NO_ACTIVE_COLLABORATORS`); si nadie responde antes del timeout, los puntos se devuelven solos (`question_refunded`) — en ambos casos decirlo con honestidad. Compartir ubicación manda un ping cada ~15 s a `/collaboration/shares/:id/pings` y es lo que te marca como "persona activa en la ruta". `POST /collaboration/vehicle-queries` (estimación automática) queda deprecado para el front.
+- **Puntos Chass**: la economía de puntos es **persona a persona**. Se ganan respondiendo preguntas de la comunidad (`answered_question`), compartiendo ubicación durante un viaje (`shared_location`) y reportando bloqueos que se verifican (`verified_report`); se gastan haciendo preguntas a personas activas en una ruta (`asked_question`). Si no hay personas activas la pregunta no se cobra (`409 NO_ACTIVE_COLLABORATORS`); si nadie responde antes del timeout, los puntos se devuelven solos (`question_refunded`) — en ambos casos decirlo con honestidad. Compartir ubicación manda un ping cada ~15 s a `/collaboration/shares/:id/pings` y es lo que te marca como "persona activa en la ruta". `POST /collaboration/vehicle-queries` (estimación automática) queda deprecado para el front.
 
 ## Stack del cliente
 
@@ -57,7 +57,7 @@ lib/
         └── presentation/     # pantallas, widgets, providers/controllers
 ```
 
-Módulos: `auth`, `profile`, `routing`, `transports` (catálogo de rutas), `trips`, `community` (comunidad/apoyo + puntos Ayni, evolución de `collaboration`), `emergency`, `incidents`, `complaints` (denuncias), `assistant` (chatbot), `safety`, `government`.
+Módulos: `auth`, `profile`, `routing`, `transports` (catálogo de rutas), `trips`, `community` (comunidad/apoyo + Puntos Chass, evolución de `collaboration`), `emergency`, `incidents`, `complaints` (denuncias), `assistant` (chatbot), `safety`, `government`.
 
 ---
 
@@ -89,7 +89,7 @@ Secciones: 1 Rutas · 2 Chatbot · 3 Emergencias · 4 Denuncias · 5 Perfil · C
 | Modo emergencia | HU-3.1 → 3.3 | FAB SOS rojo persistente; SOS a hospitales cercanos o centros policiales (ver pantalla Emergencias). |
 | Historial de viajes anteriores | HU-2.8 | Lista de viajes pasados desde `GET /users/me/trips` (fecha, `routeSnapshot` con origen → destino, modos y costo); tocar uno re-pide esa ruta. |
 | Pop-up "ayudar a esta persona" | HU-2.7 | Al abrir la app (y periódicamente con share activo), `GET /community/questions/pending`; si hay preguntas, pop-up [Ayudar] / [Cancelar]. Al dar Ayudar se ven las preguntas y responderlas acredita puntos (ver Comunidad). |
-| Chip de saldo Ayni | HU-2.4 | Saldo visible en el header; toca → historial de puntos en Perfil. |
+| Chip de saldo de Puntos Chass | HU-2.4 | Saldo visible en el header; toca → historial de puntos en Perfil. |
 
 ### Viaje inteligente (flujo núcleo, HU-1.x)
 
@@ -133,7 +133,7 @@ Secciones: 1 Rutas · 2 Chatbot · 3 Emergencias · 4 Denuncias · 5 Perfil · C
 
 | Elemento | HU | Detalle |
 |---|---|---|
-| Responder preguntas frecuentes | HU-5.6 | Accesos rápidos (chips) con las dudas típicas: horarios del teleférico, tarifas, cómo funcionan los puntos Ayni; responde el agente (`POST /assistant/chat`). |
+| Responder preguntas frecuentes | HU-5.6 | Accesos rápidos (chips) con las dudas típicas: horarios del teleférico, tarifas, cómo funcionan los Puntos Chass; responde el agente (`POST /assistant/chat`). |
 | Preguntar de una ruta en específico | HU-5.6, 5.4 | Chat libre (burbujas) con `tripId` y ubicación como contexto; si la respuesta trae `isCommunityEstimate: true`, etiqueta "estimación de la comunidad". |
 | Pedir ruta por voz | HU-5.1 | Botón micrófono grande (protagonista si el perfil es `visual`): speech_to_text → `POST /assistant/voice-route` → confirma por TTS antes de calcular. Semántica completa para TalkBack/VoiceOver. |
 | Guía por voz en viaje | HU-5.2 | Con perfil `visual`, cada cambio de tramo y proximidad de bajada se anuncia con flutter_tts; doble tap repite la última indicación; comando de voz para números de emergencia. |
@@ -175,7 +175,7 @@ Secciones: 1 Rutas · 2 Chatbot · 3 Emergencias · 4 Denuncias · 5 Perfil · C
 | Bloque | HU | Detalle |
 |---|---|---|
 | Mis preferencias | HU-0.3, 0.4 | Perfil de accesibilidad (ninguno/visual/movilidad reducida) y prioridad por defecto (rápido/barato/seguro); editable, `PATCH /users/me`. |
-| Información de la cuenta | HU-0.4 | Nombre, correo, saldo Ayni destacado con historial de movimientos (`GET /users/me/ayni`: fecha, motivo, +/-). |
+| Información de la cuenta | HU-0.4 | Nombre, correo, saldo de Puntos Chass destacado con historial de movimientos (`GET /users/me/ayni`: fecha, motivo, +/-). |
 | Enlazar con cuentas familiares | HU-0.6 ⚪ | Futuro (fase 2): no se construye para la hackatón; puede mostrarse como "próximamente" en el demo. |
 
 **Onboarding y auth (Flujo 0):** Splash → Bienvenida (3 slides) → `LoginScreen` / `RegisterScreen` (Supabase Auth, validación local de email y 8+ chars; tras registro `POST /users/me/bootstrap`) → `PreferencesOnboardingScreen` (2 pasos, `PATCH /users/me`) → Inicio. `authStateProvider` (stream de sesión Supabase) decide la ruta raíz; `profileProvider` cachea `GET /users/me`.
@@ -184,7 +184,7 @@ Secciones: 1 Rutas · 2 Chatbot · 3 Emergencias · 4 Denuncias · 5 Perfil · C
 
 ## Comunidad / apoyo (pantalla nueva)
 
-El corazón del sistema Ayni: **preguntas persona a persona** sobre una ruta ("SOS usuario a usuario"). Evolución de la antigua consulta automática "¿dónde viene mi transporte?".
+El corazón del sistema de Puntos Chass: **preguntas persona a persona** sobre una ruta ("SOS usuario a usuario"). Evolución de la antigua consulta automática "¿dónde viene mi transporte?".
 
 **Pantallas:** `CommunityScreen` (elegir ruta y preguntar) + pop-up "ayudar a esta persona" (global, se muestra en Inicio) + `AyniHistoryScreen`.
 
@@ -237,7 +237,7 @@ Todo lo que el desglose de pantallas exige ya está implementado en el backend (
 1. `core/` (cliente dio + sobre de errores + Supabase init) y Flujo 0 completo (auth + Perfil con preferencias y cuenta).
 2. Inicio + Viaje inteligente contra el motor real (es el demo central).
 3. Rutas (catálogo por transporte) — reutiliza `GET /transports/*` ya existente — y la capa de incidentes/reportes.
-4. Comunidad/apoyo (preguntas usuario a usuario + pop-up ayudar + compartir ubicación + puntos Ayni) contra el módulo `community` ya implementado.
+4. Comunidad/apoyo (preguntas usuario a usuario + pop-up ayudar + compartir ubicación + Puntos Chass) contra el módulo `community` ya implementado.
 5. Emergencias y zonas de riesgo (reutilizan mapa y motor).
 6. Chatbot (FAQ + ruta específica + voz), Denuncias e Historial de viajes.
 7. Vista de gobierno con escenarios de demo.

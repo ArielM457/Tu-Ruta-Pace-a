@@ -1,4 +1,4 @@
-# Ayni Ruta — Flujos de usuario e Historias de Usuario (HU)
+# Chasqui — Flujos de usuario e Historias de Usuario (HU)
 
 > Proyecto para la Hackatón "Soluciones para mi Ciudad" — GAMLP
 > Reto: Movilidad autónoma y colaborativa — combinar teleférico, PumaKatari y transporte público/privado en una sola recomendación de viaje inteligente.
@@ -22,7 +22,7 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
 | Actor | Descripción |
 |---|---|
 | **Ciudadano** | Usuario general que quiere moverse por La Paz |
-| **Colaborador Ayni** | Ciudadano que comparte su ubicación durante un viaje y gana puntos |
+| **colaborador** | Ciudadano que comparte su ubicación durante un viaje y gana puntos |
 | **Persona con discapacidad visual** | Usa la app mediante el asistente de voz |
 | **Persona con movilidad reducida** | Necesita rutas y transportes accesibles |
 | **Usuario en emergencia** | Necesita llegar a un centro de salud cuanto antes |
@@ -40,11 +40,11 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
 ### Historias de Usuario
 
 **HU-0.1 — Registro de cuenta** 🟢 MVP
-> Como ciudadano, quiero registrarme con mi correo y contraseña, para tener una cuenta que guarde mis puntos Ayni y preferencias.
+> Como ciudadano, quiero registrarme con mi correo y contraseña, para tener una cuenta que guarde mis Puntos Chass y preferencias.
 - Criterios de aceptación:
   - El registro se hace contra Supabase Auth.
   - Se validan formato de correo y contraseña mínima de 8 caracteres.
-  - Al registrarse se crea automáticamente su perfil con 0 puntos Ayni.
+  - Al registrarse se crea automáticamente su perfil con 0 Puntos Chass.
 
 **HU-0.2 — Inicio de sesión** 🟢 MVP
 > Como ciudadano registrado, quiero iniciar sesión, para acceder a mi cuenta desde cualquier dispositivo.
@@ -61,15 +61,15 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
   - Las preferencias se guardan en el perfil y son editables después.
 
 **HU-0.4 — Ver y editar perfil** 🟢 MVP
-> Como ciudadano, quiero ver mi perfil con mis puntos Ayni y editar mis datos y preferencias, para mantener mi cuenta al día.
+> Como ciudadano, quiero ver mi perfil con mis Puntos Chass y editar mis datos y preferencias, para mantener mi cuenta al día.
 - Criterios de aceptación:
-  - Muestra nombre, correo, saldo de puntos Ayni y preferencias.
+  - Muestra nombre, correo, saldo de Puntos Chass y preferencias.
   - Permite editar nombre, preferencias de viaje y accesibilidad.
 
 **HU-0.5 — Uso sin cuenta (invitado)** ⚪ FUTURO
 > Como persona que no quiere registrarse, quiero pedir rutas sin crear cuenta, para usar lo básico de la app sin fricción.
 - Criterios de aceptación:
-  - Puede pedir rutas pero no acumula ni gasta puntos Ayni.
+  - Puede pedir rutas pero no acumula ni gasta Puntos Chass.
   - Se le invita a registrarse al intentar usar funciones colaborativas.
 
 **HU-0.6 — Enlazar con cuentas familiares** ⚪ FUTURO (fase 2)
@@ -138,13 +138,13 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
   - Pantalla "Rutas" con secciones por tipo: Teleférico, PumaKatari, minibuses/micros/trufis.
   - Cada línea/ruta muestra su recorrido, paradas y costo en Bs.
   - Sobre cada línea se indican los bloqueos activos que la afectan y los caminos alternos (conecta con el Flujo 4).
-  - Desde esta pantalla se puede reportar un bloqueo o desvío (entra al Flujo 4 y, al verificarse, da puntos Ayni).
+  - Desde esta pantalla se puede reportar un bloqueo o desvío (entra al Flujo 4 y, al verificarse, da Puntos Chass).
 
 ---
 
-## Flujo 2 — Viaje en curso, ubicación colaborativa y puntos Ayni
+## Flujo 2 — Viaje en curso, ubicación colaborativa y Puntos Chass
 
-**Objetivo:** durante el viaje, el usuario recibe guía y colabora con la comunidad; toda colaboración (responder preguntas de otros usuarios, compartir ubicación, reportar bloqueos) se recompensa con puntos Ayni (dar y recibir). La consulta de transporte es **persona a persona** ("SOS usuario a usuario"): quien espera pregunta, quien está activo en esa ruta responde.
+**Objetivo:** durante el viaje, el usuario recibe guía y colabora con la comunidad; toda colaboración (responder preguntas de otros usuarios, compartir ubicación, reportar bloqueos) se recompensa con Puntos Chass (dar y recibir). La consulta de transporte es **persona a persona** ("SOS usuario a usuario"): quien espera pregunta, quien está activo en esa ruta responde.
 
 **Recorrido:** iniciar viaje → seguimiento en mapa tramo a tramo → la app invita a compartir ubicación al subir a un transporte → otro usuario elige la ruta que le interesa, ve que hay personas activas y les pregunta gastando puntos ("¿viene el transporte?, ¿en cuánto llega?, ¿hay asientos?") → al colaborador le aparece el pop-up "ayudar a esta persona" y gana puntos al responder → fin de viaje.
 
@@ -158,7 +158,7 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
   - Aviso al acercarse al punto de bajada o transbordo.
 
 **HU-2.2 — Compartir ubicación durante el viaje (ganar puntos)** 🟢 MVP
-> Como colaborador Ayni, quiero compartir mi ubicación mientras voy dentro de un transporte, para ayudar a otros a saber dónde viene ese transporte y ganar puntos Ayni.
+> Como colaborador, quiero compartir mi ubicación mientras voy dentro de un transporte, para ayudar a otros a saber dónde viene ese transporte y ganar Puntos Chass.
 - Criterios de aceptación:
   - Al iniciar un tramo en transporte, la app pregunta si quiere compartir ubicación (opt-in, nunca automático).
   - Mientras comparte, envía posición periódica asociada a la línea/ruta del transporte.
@@ -169,12 +169,12 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
 > Como ciudadano esperando, quiero elegir la ruta a la que voy, encontrar a las personas activas en esa ruta y preguntarles dentro de la app si viene el transporte, en cuánto tiempo llega y si hay asientos disponibles, para decidir si espero o tomo otra opción.
 - Criterios de aceptación:
   - El usuario elige la ruta que le interesa y ve cuántas personas activas hay en ella (nunca se expone la identidad ni la posición individual de un colaborador).
-  - Hacer una pregunta cuesta puntos Ayni; se descuentan al confirmarla.
+  - Hacer una pregunta cuesta Puntos Chass; se descuentan al confirmarla.
   - Puede preguntar por disponibilidad del transporte, tiempo estimado de llegada y asientos disponibles.
   - Si no hay personas activas en esa ruta o nadie responde en un tiempo razonable, se informa con honestidad y se devuelven los puntos.
 
-**HU-2.4 — Ver historial y saldo de puntos Ayni** 🟢 MVP
-> Como colaborador Ayni, quiero ver cuántos puntos tengo y cómo los gané o gasté, para entender el sistema de dar y recibir.
+**HU-2.4 — Ver historial y saldo de Puntos Chass** 🟢 MVP
+> Como colaborador, quiero ver cuántos puntos tengo y cómo los gané o gasté, para entender el sistema de dar y recibir.
 - Criterios de aceptación:
   - Saldo visible en el perfil y en la pantalla principal.
   - Historial de movimientos: fecha, motivo (compartió ubicación / consultó transporte), puntos +/-.
@@ -186,11 +186,11 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
 > Como ciudadano, quiero dejar una nota corta sobre mi viaje (ej. "a esta hora ya no pasan minibuses por aquí"), para alimentar las respuestas del agente IA (Flujo 5).
 
 **HU-2.7 — Responder preguntas de la comunidad (ganar puntos)** 🟢 MVP
-> Como colaborador Ayni activo en una ruta, quiero recibir un aviso cuando alguien necesita ayuda y responder su pregunta dentro de la app, para ganar puntos que después uso en mis propias preguntas.
+> Como colaborador activo en una ruta, quiero recibir un aviso cuando alguien necesita ayuda y responder su pregunta dentro de la app, para ganar puntos que después uso en mis propias preguntas.
 - Criterios de aceptación:
   - Al entrar a la app (o durante un viaje en esa ruta) aparece un pop-up "ayudar a esta persona" con opciones [Ayudar] / [Cancelar].
   - Al dar clic en Ayudar se muestran las preguntas pendientes de esa ruta y puede responderlas.
-  - Cada respuesta acredita puntos Ayni a quien responde; los puntos que gastó quien preguntó son los que se reparten (el ciclo dar y recibir se cierra).
+  - Cada respuesta acredita Puntos Chass a quien responde; los puntos que gastó quien preguntó son los que se reparten (el ciclo dar y recibir se cierra).
   - Puede ignorar o cancelar sin penalización.
 
 **HU-2.8 — Historial de viajes anteriores** 🟡 DEMO
@@ -250,7 +250,7 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
   - Formulario mínimo: tipo (bloqueo / movilización / refacción), ubicación (mapa, por defecto la actual), descripción corta, foto opcional (Supabase Storage).
   - El reporte nace en estado "pendiente de verificación".
   - Un usuario no puede reportar el mismo incidente dos veces.
-  - Cuando el reporte se verifica (pasa a "activo"), el autor gana puntos Ayni (conecta con el Flujo 2).
+  - Cuando el reporte se verifica (pasa a "activo"), el autor gana Puntos Chass (conecta con el Flujo 2).
 
 **HU-4.2 — Confirmar reportes de otros** 🟢 MVP
 > Como ciudadano cerca de un incidente reportado, quiero confirmar si es real, para que el sistema lo valide y evitar reportes falsos.
@@ -429,7 +429,7 @@ Nomenclatura: `HU-<flujo>.<número>` (ej. `HU-2.3` = tercera historia del Flujo 
 | HU-0.1, 0.2, 0.4 | Registro, login y perfil (Supabase Auth) |
 | HU-1.1 → 1.5 | Flujo completo de pedir ruta y recibir recomendación multimodal evitando bloqueos |
 | HU-1.8 | Catálogo de rutas por tipo de transporte (teleférico / PumaKatari / minibuses) |
-| HU-2.2, 2.3, 2.4, 2.7 | Compartir ubicación, preguntar a la comunidad (SOS usuario a usuario), responder preguntas, saldo/historial Ayni |
+| HU-2.2, 2.3, 2.4, 2.7 | Compartir ubicación, preguntar a la comunidad (SOS usuario a usuario), responder preguntas, saldo/Historial de Puntos Chass |
 | HU-3.3 | Números de emergencia con llamada directa |
 | HU-4.1, 4.2, 4.4, 4.5 | Reportar incidentes, confirmarlos, mapa de incidentes, tráfico Google |
 | HU-6.1, 6.2 | Costos por tramo/opción y orden por precio |

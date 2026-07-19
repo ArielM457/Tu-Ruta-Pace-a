@@ -1,4 +1,4 @@
-# Ayni Ruta — Prompts para Stitch (diseño mobile)
+# Chasqui — Prompts para Stitch (diseño mobile)
 
 > Inventario de pantallas derivado de [03-frontend.md](03-frontend.md) y prompts listos para pegar en [Stitch](https://stitch.withgoogle.com) en modo **Mobile**. Stitch rinde mejor con descripciones en inglés, así que los prompts van en inglés pero **todo el copy de la UI se pide en español**.
 
@@ -18,7 +18,7 @@
 | 8 | Opciones de ruta | 1 | `routing` |
 | 9 | Detalle de ruta (timeline + mapa) | 1 | `routing` |
 | 10 | Viaje en curso | 2 | `trips` |
-| 11 | Historial de puntos Ayni | 2 | `collaboration` |
+| 11 | Historial de Puntos Chass | 2 | `collaboration` |
 | 12 | Modo urgencia | 3 | `emergency` |
 | 13 | Reportar incidente | 4 | `incidents` |
 | 14 | Chat del asistente IA | 5 | `assistant` |
@@ -42,7 +42,7 @@
 ## Prompt maestro (pegar primero)
 
 ```
-Design a mobile app called "Ayni Ruta" — a multimodal urban mobility app for La Paz, Bolivia. It combines cable car (Mi Teleférico, 11 color-coded lines), PumaKatari buses, informal public transport (minibús, micro, trufi) and taxis into one smart route recommendation, avoiding street blockades and protests. It also has an "Ayni" points system (share your live location while riding to earn points, spend points to see where your bus is), an emergency mode, citizen incident reports, and an AI accessibility assistant.
+Design a mobile app called "Chasqui" — a multimodal urban mobility app for La Paz, Bolivia. It combines cable car (Mi Teleférico, 11 color-coded lines), PumaKatari buses, informal public transport (minibús, micro, trufi) and taxis into one smart route recommendation, avoiding street blockades and protests. It also has an "Ayni" points system (share your live location while riding to earn points, spend points to see where your bus is), an emergency mode, citizen incident reports, and an AI accessibility assistant.
 
 ALL UI text must be in Spanish (Bolivia). Currency is always "Bs" (bolivianos).
 
@@ -55,7 +55,7 @@ Design system:
 - Accessibility: touch targets at least 48dp, AA contrast, clear labels.
 - Bottom navigation with 4 tabs: "Inicio" (map), "Reportes", "Asistente", "Perfil". A persistent red circular SOS button floats above the bottom bar.
 
-Start with the Home screen: a full-screen Google Map of La Paz with the cable car lines drawn in their colors, a rounded search bar at top with placeholder "¿A dónde vas?", a large microphone button next to it, a chip showing Ayni points balance ("120 pts") at top right, a floating "Reportar" button, orange incident markers on the map, and the bottom navigation with the red SOS button.
+Start with the Home screen: a full-screen Google Map of La Paz with the cable car lines drawn in their colors, a rounded search bar at top with placeholder "¿A dónde vas?", a large microphone button next to it, a chip showing Chass points balance ("120 pts") at top right, a floating "Reportar" button, orange incident markers on the map, and the bottom navigation with the red SOS button.
 ```
 
 ## Lote 1 — Onboarding y auth
@@ -63,7 +63,7 @@ Start with the Home screen: a full-screen Google Map of La Paz with the cable ca
 ```
 Add the onboarding and auth screens, same design system, all text in Spanish:
 
-1. Splash: centered app logo concept for "Ayni Ruta" (a stylized cable car cabin over intertwined route lines), deep blue background, tagline "Tu ruta paceña, inteligente y colaborativa".
+1. Splash: centered app logo concept for "Chasqui" (a stylized cable car cabin over intertwined route lines), deep blue background, tagline "Movilidad colaborativa para La Paz".
 
 2. Onboarding (one screen, slide 1 of 3 with page dots): illustration of the La Paz cable car over the city, headline "Todos tus transportes en una sola ruta", body "Teleférico, PumaKatari, minibús y taxi combinados en la mejor opción", buttons "Siguiente" and "Omitir".
 
@@ -86,12 +86,12 @@ Add the core route-planning screens, same design system, Spanish text:
 3. Viaje en curso: full-screen map with the active route polyline and a blue location dot mid-route, a top banner "Baja en: Estación Libertador — 2 paradas", a card anchored at bottom with: current leg info, a live toggle "Compartiendo ubicación · +2 pts por minuto" with a stop button "Dejar de compartir", and a secondary button "¿Dónde viene mi minibús? · 5 pts". Emergency numbers icon accessible in the corner.
 ```
 
-## Lote 3 — Colaboración Ayni (sheets)
+## Lote 3 — Colaboración y Puntos Chass (sheets)
 
 ```
-Add the Ayni collaboration screens, same design system, Spanish text:
+Add the points collaboration screens, same design system, Spanish text:
 
-1. Historial Ayni: header card with big balance "120 puntos Ayni" and subtitle "Das y recibes: así funciona el ayni". Below, a transaction list: "+8 · Compartiste ubicación en Línea Amarilla · hoy 08:32", "-5 · Consultaste minibús Ruta 273 · ayer 19:10", green for earnings, red for spending.
+1. Historial de Puntos Chass: header card with big balance "120 Puntos Chass" and subtitle "Das y recibes: así funciona el ayni". Below, a transaction list: "+8 · Compartiste ubicación en Línea Amarilla · hoy 08:32", "-5 · Consultaste minibús Ruta 273 · ayer 19:10", green for earnings, red for spending.
 
 2. Bottom sheet over the map, opt-in dialog: title "¿Compartir tu ubicación en este tramo?", explanation "Otros vecinos sabrán dónde viene el transporte. Ganás 2 puntos por minuto. Podés detenerlo cuando quieras.", primary button "Sí, compartir", text button "Ahora no", small privacy note "Solo mientras dura el tramo".
 
@@ -129,7 +129,7 @@ Add the last screens, same design system, Spanish:
 
 2. Voice overlay (over the home map): dimmed background, huge centered microphone with animated sound waves, live transcription text "Llevame al Hospital Obrero…", caption "Escuchando… hablá con confianza", cancel button. Designed for blind users: maximum contrast and size.
 
-3. Perfil: avatar, name "María Quispe", email, a highlighted Ayni balance card "120 puntos" with arrow to history, editable preference rows: "Perfil de accesibilidad: Ninguno", "Prioridad: Rápido", toggle "Modo oscuro", button "Cerrar sesión".
+3. Perfil: avatar, name "María Quispe", email, a highlighted points balance card "120 puntos" with arrow to history, editable preference rows: "Perfil de accesibilidad: Ninguno", "Prioridad: Rápido", toggle "Modo oscuro", button "Cerrar sesión".
 
 4. Dashboard gobierno (role-restricted screen, more data-dense): header "Monitoreo — GAMLP", a heatmap over the La Paz map showing incident clusters, summary stat cards: "12 bloqueos activos", "Zona más congestionada: Max Paredes", "48 reportes hoy", filter chips by type and a date range selector.
 ```

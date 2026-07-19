@@ -1,4 +1,4 @@
-# Avance del Frontend (Flutter) — Ayni Ruta
+# Avance del Frontend (Flutter) — Chasqui
 
 > Última actualización: 18 de julio de 2026
 > Estado: **Flujos 0, 1, 2, 3, 4, 5 y 8 implementados y conectados al backend real (sin mocks).** Falta Flujo 6/7 de superficie visual adicional y pulido final para la demo.
@@ -12,7 +12,7 @@ Sobre la base de Flujo 0 (auth, onboarding, perfil) y Flujo 1 (mapa y ruta multi
 | `emergency` | Flujo 3 — modo urgencia | ✅ Completo |
 | `incidents` | Flujo 4 — reportes y verificación de vías | ✅ Completo |
 | `assistant` | Flujo 5 — asistente IA y voz | ✅ Completo |
-| `community` | Flujo 2 — Ayni, colaboración y ubicación en vivo | ✅ Completo |
+| `community` | Flujo 2 — Puntos Chass, colaboración y ubicación en vivo | ✅ Completo |
 | `government` | Flujo 8 — vista de monitoreo para gobierno | ✅ Completo |
 
 Todos consumen los endpoints reales del backend NestJS (`http://localhost:3000/api/v1` en Android emulator vía `10.0.2.2`, `localhost` en web/desktop) — no hay datos simulados en el cliente.
@@ -37,10 +37,10 @@ Todos consumen los endpoints reales del backend NestJS (`http://localhost:3000/a
 - **Entrada por voz**: `mic_button.dart` usa `speech_to_text` para dictado y `POST /assistant/voice-route` para resolver rutas habladas; salida hablada con `flutter_tts` — pensado para accesibilidad visual.
 - Permisos nativos agregados: `RECORD_AUDIO` (Android), `NSMicrophoneUsageDescription` / `NSSpeechRecognitionUsageDescription` (iOS).
 
-## Comunidad Ayni (Flujo 2) — `lib/modules/community/`
+## Comunidad (Flujo 2) — `lib/modules/community/`
 
 - **Compartir ubicación (opt-in)**: `share_optin_sheet.dart` inicia un `POST /collaboration/shares` solo con consentimiento explícito del usuario; mientras comparte, un chip de estado (`sharing_chip.dart`) lo muestra en pantalla.
-- **Preguntar a la comunidad**: `ask_question_sheet.dart` → `POST /community/questions`, con costo en puntos Ayni y reembolso automático si nadie responde a tiempo.
+- **Preguntar a la comunidad**: `ask_question_sheet.dart` → `POST /community/questions`, con costo en Puntos Chass y reembolso automático si nadie responde a tiempo.
 - **Responder preguntas pendientes**: `pending_questions_screen.dart` + `question_answer_card.dart` consumen `GET /community/questions/pending`; al responder, el colaborador recibe los puntos de quien preguntó.
 - **Historial y saldo**: `community_screen.dart` combina `GET /community/questions/mine`, `GET /users/me/ayni` (historial de movimientos) y el balance animado (`AyniBadge`, contador `TweenAnimationBuilder`).
 

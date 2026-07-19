@@ -1,4 +1,4 @@
-# Ayni Ruta — Diseño del Backend (NestJS)
+# Chasqui — Diseño del Backend (NestJS)
 
 > Este documento toma los mismos flujos de [01-flujos-y-hu.md](01-flujos-y-hu.md) y los baja al diseño del backend. **El backend se desarrolla primero**; el frontend consume los contratos definidos aquí.
 
@@ -41,7 +41,7 @@ src/
     ├── routing/             # Flujo 1 y 6 — motor de recomendación multimodal + costos
     ├── transports/          # catálogo: líneas de teleférico, rutas PumaKatari, radiotaxis
     ├── trips/               # Flujo 2 — viajes en curso + historial
-    ├── collaboration/       # Flujo 2 — ubicación colaborativa + puntos Ayni
+    ├── collaboration/       # Flujo 2 — ubicación colaborativa + Puntos Chass
     ├── community/           # Flujo 2 — preguntas usuario a usuario (SOS usuario a usuario)
     ├── emergency/           # Flujo 3 — modo urgencia, hospitales, números
     ├── incidents/           # Flujo 4 — reportes, confirmaciones, cierres oficiales
@@ -237,7 +237,7 @@ risk_zones (
 )
 ```
 
-> **Nota de implementación:** el código final guarda las posiciones como columnas `lat`/`lng` (double precision) y calcula cercanías con haversine en la aplicación, en lugar de `geography` + PostGIS. A escala urbana el resultado es equivalente y evita depender de funciones RPC para cada lectura. Las zonas de riesgo se modelan como centro + radio en metros. Las operaciones que exigen atomicidad (puntos Ayni, votos de incidentes) sí usan funciones RPC de Postgres: `adjust_ayni_points` y `register_incident_vote`. El schema real está en `backend/seeds/00-schema.sql`.
+> **Nota de implementación:** el código final guarda las posiciones como columnas `lat`/`lng` (double precision) y calcula cercanías con haversine en la aplicación, en lugar de `geography` + PostGIS. A escala urbana el resultado es equivalente y evita depender de funciones RPC para cada lectura. Las zonas de riesgo se modelan como centro + radio en metros. Las operaciones que exigen atomicidad (Puntos Chass, votos de incidentes) sí usan funciones RPC de Postgres: `adjust_ayni_points` y `register_incident_vote`. El schema real está en `backend/seeds/00-schema.sql`.
 
 ---
 
@@ -248,7 +248,7 @@ risk_zones (
 | Método | Ruta | HU | Descripción |
 |---|---|---|---|
 | `POST` | `/users/me/bootstrap` | HU-0.1 | Idempotente. Tras el primer login crea el `profile` con 0 puntos. |
-| `GET` | `/users/me` | HU-0.4 | Perfil completo: datos, preferencias, saldo Ayni. |
+| `GET` | `/users/me` | HU-0.4 | Perfil completo: datos, preferencias, saldo de Puntos Chass. |
 | `PATCH` | `/users/me` | HU-0.3, 0.4 | Actualiza `display_name`, `accessibility_profile`, `default_priority`. |
 
 - `SupabaseAuthGuard` global: valida JWT, inyecta `{ userId, role }`.
@@ -326,7 +326,7 @@ Servicios separados, cada uno con un objetivo: `GeocodingService`, `SurfaceRoute
 
 Los datos se cargan con **seeds** (scripts SQL/TS): las 11 líneas reales de teleférico con sus estaciones y tarifas, rutas PumaKatari y zonas de radiotaxi armadas desde información pública.
 
-## Flujo 2 — Viaje en curso, colaboración, comunidad y puntos Ayni
+## Flujo 2 — Viaje en curso, colaboración, comunidad y Puntos Chass
 
 ### Viajes y compartir ubicación
 
@@ -378,7 +378,7 @@ Reglas de negocio (`community/services/CommunityQuestionsService`):
 - Si nadie responde antes de `expires_at`, un job (`@nestjs/schedule`, cada minuto) marca la pregunta `expired` y **reembolsa los puntos** al que preguntó (RPC `expire_community_questions`, movimiento `question_refunded`). Honestidad ante todo: la app informa "nadie respondió, te devolvimos tus puntos".
 - La identidad del que responde no se expone al que pregunta (solo el contenido de la respuesta).
 
-### Reglas de negocio de puntos Ayni (`collaboration/services/AyniPointsService`)
+### Reglas de negocio de Puntos Chass (`collaboration/services/AyniPointsService`)
 
 - Ganancia por compartir: `puntos = minutos_compartidos * AYNI_RATE_PER_MINUTE` (tope `AYNI_MAXIMUM_POINTS_PER_SHARE`).
 - Ganancia por responder una pregunta: los `points_cost` de la pregunta (movimiento `answered_question`).
@@ -411,7 +411,7 @@ Reglas de negocio (`community/services/CommunityQuestionsService`):
 - `confirmations >= UMBRAL_CONFIRMACION` (config, ej. 3) → `status = active`.
 - `denials >= UMBRAL_CIERRE` con proporción mayor a confirmaciones recientes → `status = resolved`.
 - Duplicados: un `POST /incidents` a < 100 m de un incidente `pending|active` del mismo tipo se convierte automáticamente en confirmación.
-- **Puntos por reporte verificado (HU-4.1):** cuando el voto que supera el umbral pasa el incidente de `pending` a `active`, el autor del reporte gana `AYNI_VERIFIED_REPORT_REWARD` puntos Ayni (movimiento `verified_report` con el incidente como referencia). Un índice único parcial sobre `ayni_transactions(reference_id) where reason = 'verified_report'` garantiza que nunca se acredite dos veces por el mismo incidente.
+- **Puntos por reporte verificado (HU-4.1):** cuando el voto que supera el umbral pasa el incidente de `pending` a `active`, el autor del reporte gana `AYNI_VERIFIED_REPORT_REWARD` Puntos Chass (movimiento `verified_report` con el incidente como referencia). Un índice único parcial sobre `ayni_transactions(reference_id) where reason = 'verified_report'` garantiza que nunca se acredite dos veces por el mismo incidente.
 - Expiración: job programado (`@nestjs/schedule`) que resuelve incidentes pasados de `expires_at` (default: bloqueos 12 h, refacciones 7 días).
 - El tráfico normal (HU-4.5) **no pasa por el backend**: la capa de tráfico la pinta Google Maps en el cliente.
 
@@ -483,7 +483,7 @@ Request de `POST /complaints`:
 ### Configuración (variables de entorno)
 
 ```
-SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_JWT_SECRET
+SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 GOOGLE_MAPS_API_KEY
 AI_AGENT_BASE_URL, AI_AGENT_API_KEY
 AYNI_RATE_PER_MINUTE, AYNI_QUERY_COST, AYNI_QUESTION_COST,
@@ -507,6 +507,6 @@ PORT, CORS_ORIGINS
 2. Catálogo `transports` + seeds de teleférico/Puma.
 3. Motor `routing` con Google Directions + grafo propio (Flujo 1 sin incidentes).
 4. Módulo `incidents` + integración con el motor (HU-1.5).
-5. `collaboration` + puntos Ayni (Flujo 2).
+5. `collaboration` + Puntos Chass (Flujo 2).
 6. `emergency`, `safety`, `government` (rápidos: reutilizan el motor y son CRUD/agregaciones).
 7. `assistant` (proxy al servicio Python) al final.
