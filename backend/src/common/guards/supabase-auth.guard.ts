@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
-import { JwtPayload, verify } from 'jsonwebtoken';
+import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
 import { AppConfigService } from '../../config/app-config.service';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import { DomainException } from '../exceptions/domain.exception';
@@ -14,12 +14,20 @@ import { AuthenticatedUser, UserRole } from '../types/domain';
 
 @Injectable()
 export class SupabaseAuthGuard implements CanActivate {
+  private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
+  private readonly issuer: string;
+
   constructor(
     private readonly reflector: Reflector,
     private readonly appConfig: AppConfigService,
-  ) {}
+  ) {
+    this.issuer = `${this.appConfig.supabaseUrl}/auth/v1`;
+    this.jwks = createRemoteJWKSet(
+      new URL(`${this.issuer}/.well-known/jwks.json`),
+    );
+  }
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -38,7 +46,7 @@ export class SupabaseAuthGuard implements CanActivate {
         HttpStatus.UNAUTHORIZED,
       );
     }
-    request.user = this.verifyToken(token);
+    request.user = await this.verifyToken(token);
     return true;
   }
 
@@ -51,16 +59,16 @@ export class SupabaseAuthGuard implements CanActivate {
     return scheme?.toLowerCase() === 'bearer' && token ? token : null;
   }
 
-  private verifyToken(token: string): AuthenticatedUser {
+  private async verifyToken(token: string): Promise<AuthenticatedUser> {
     try {
-      const payload = verify(
-        token,
-        this.appConfig.supabaseJwtSecret,
-      ) as JwtPayload;
-      if (!payload.sub) {
+      const { payload } = await jwtVerify(token, this.jwks, {
+        issuer: this.issuer,
+      });
+      const subject = (payload as JWTPayload).sub;
+      if (!subject) {
         throw new Error('missing subject');
       }
-      return { userId: payload.sub, role: UserRole.Citizen };
+      return { userId: subject, role: UserRole.Citizen };
     } catch {
       throw new DomainException(
         'INVALID_TOKEN',

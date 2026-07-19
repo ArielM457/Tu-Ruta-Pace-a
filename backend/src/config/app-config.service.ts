@@ -22,10 +22,6 @@ export class AppConfigService {
     return this.readRequired('SUPABASE_SERVICE_ROLE_KEY');
   }
 
-  get supabaseJwtSecret(): string {
-    return this.readRequired('SUPABASE_JWT_SECRET');
-  }
-
   get googleMapsApiKey(): string | null {
     return this.configService.get<string>('GOOGLE_MAPS_API_KEY') || null;
   }
@@ -62,7 +58,11 @@ export class AppConfigService {
   }
 
   get ayniQuestionCost(): number {
-    return this.readNumber('AYNI_QUESTION_COST', 5);
+    return this.readNumber('AYNI_QUESTION_COST', 50);
+  }
+
+  get ayniAnswerReward(): number {
+    return this.readNumber('AYNI_ANSWER_REWARD', 5);
   }
 
   get ayniQuestionTimeoutMinutes(): number {
@@ -70,7 +70,11 @@ export class AppConfigService {
   }
 
   get ayniVerifiedReportReward(): number {
-    return this.readNumber('AYNI_VERIFIED_REPORT_REWARD', 10);
+    return this.readNumber('AYNI_VERIFIED_REPORT_REWARD', 15);
+  }
+
+  get ayniConfirmedIncidentReward(): number {
+    return this.readNumber('AYNI_CONFIRMED_INCIDENT_REWARD', 10);
   }
 
   get incidentConfirmThreshold(): number {
