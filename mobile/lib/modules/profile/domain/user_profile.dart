@@ -62,4 +62,16 @@ class UserProfile {
   final TravelPriority defaultPriority;
   final int ayniPoints;
   final DateTime createdAt;
+
+  UserProfile copyWith({int? ayniPoints}) {
+    return UserProfile(
+      id: id,
+      displayName: displayName,
+      role: role,
+      accessibilityProfile: accessibilityProfile,
+      defaultPriority: defaultPriority,
+      ayniPoints: ayniPoints ?? this.ayniPoints,
+      createdAt: createdAt,
+    );
+  }
 }

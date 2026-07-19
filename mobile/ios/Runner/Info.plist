@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Ayni Ruta usa el micrófono para que puedas hacer preguntas por voz al asistente.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Ayni Ruta transcribe tu voz para entender tus preguntas al asistente.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

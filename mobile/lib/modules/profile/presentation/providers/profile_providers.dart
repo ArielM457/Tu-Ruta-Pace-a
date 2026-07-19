@@ -35,4 +35,14 @@ class ProfileController extends AsyncNotifier<UserProfile> {
     );
     return !state.hasError;
   }
+
+  /// Applies a fresh Ayni points balance locally (e.g. after sharing
+  /// location or answering a question) so the badge updates instantly
+  /// without refetching the whole profile.
+  void applyAyniBalance(int balance) {
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(current.copyWith(ayniPoints: balance));
+    }
+  }
 }

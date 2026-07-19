@@ -31,6 +31,16 @@
 
   <title>ayni_ruta</title>
   <link rel="manifest" href="manifest.json">
+  <!-- web/config.js is gitignored; copy web/config.example.js and fill in your key -->
+  <script src="config.js"></script>
+  <script>
+    (function () {
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + (window.GOOGLE_MAPS_API_KEY || '');
+      s.async = true;
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
   <!--

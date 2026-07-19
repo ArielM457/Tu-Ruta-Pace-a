@@ -12,6 +12,11 @@ import '../modules/profile/presentation/screens/preferences_onboarding_screen.da
 import '../modules/profile/presentation/screens/profile_screen.dart';
 import '../modules/routing/presentation/screens/home_map_screen.dart';
 import '../modules/routing/presentation/screens/route_detail_screen.dart';
+import '../modules/emergency/presentation/screens/emergency_screen.dart';
+import '../modules/assistant/presentation/screens/chat_screen.dart';
+import '../modules/community/presentation/screens/community_screen.dart';
+import '../modules/community/presentation/screens/pending_questions_screen.dart';
+import '../modules/government/presentation/screens/government_screen.dart';
 import '../modules/routing/presentation/screens/route_options_screen.dart';
 
 abstract final class AppRoutes {
@@ -23,6 +28,11 @@ abstract final class AppRoutes {
   static const String profile = '/profile';
   static const String routeOptions = '/route-options';
   static const String routeDetail = '/route-detail';
+  static const String emergency = '/emergency';
+  static const String assistant = '/assistant';
+  static const String community = '/community';
+  static const String pendingQuestions = '/community/pending';
+  static const String government = '/government';
 }
 
 const Set<String> _routesWithoutSession = {
@@ -80,6 +90,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.routeDetail,
         builder: (context, state) => const RouteDetailScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.emergency,
+        builder: (context, state) => const EmergencyScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.assistant,
+        builder: (context, state) => const ChatScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.community,
+        builder: (context, state) => const CommunityScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.pendingQuestions,
+        builder: (context, state) => const PendingQuestionsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.government,
+        builder: (context, state) => const GovernmentScreen(),
       ),
     ],
   );

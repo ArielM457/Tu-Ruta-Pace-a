@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local secrets for `flutter run --dart-define-from-file`
+dart_define.json
+
+# Local secret for web Google Maps JS key
+web/config.js

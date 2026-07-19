@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../app/router.dart';
+import '../../../community/presentation/providers/collaboration_providers.dart';
+import '../../../community/presentation/widgets/ask_question_sheet.dart';
+import '../../../community/presentation/widgets/share_optin_sheet.dart';
 import '../../../trips/presentation/providers/trips_providers.dart';
 import '../../data/route_recommendation_mapper.dart';
 import '../../domain/route_entities.dart';
@@ -25,22 +28,68 @@ class RouteDetailScreen extends ConsumerWidget {
       return;
     }
     final messenger = ScaffoldMessenger.of(context);
-    if (started) {
+    if (!started) {
+      final error = ref.read(startTripControllerProvider).error;
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Viaje iniciado. ¡Buen viaje!'),
+        SnackBar(
+          content: Text(
+            error?.toString() ?? 'No se pudo iniciar el viaje. Intenta de nuevo.',
+          ),
         ),
       );
-      context.go(AppRoutes.home);
       return;
     }
-    final error = ref.read(startTripControllerProvider).error;
+
     messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          error?.toString() ?? 'No se pudo iniciar el viaje. Intenta de nuevo.',
-        ),
+      const SnackBar(content: Text('Viaje iniciado. ¡Buen viaje!')),
+    );
+
+    final trip = ref.read(startTripControllerProvider).value;
+    final firstTransitLeg = option.legs.firstWhere(
+      (leg) => leg.mode != TransportMode.walk && leg.lineId != null,
+      orElse: () => const RouteLeg(
+        mode: TransportMode.walk,
+        durationMinutes: 0,
+        distanceMeters: 0,
+        costBs: 0,
+        polyline: '',
+        instruction: '',
       ),
+    );
+
+    if (trip != null && firstTransitLeg.lineId != null && context.mounted) {
+      final wantsToShare = await ShareOptInSheet.show(
+        context,
+        lineLabel: firstTransitLeg.lineName ?? 'tu línea de transporte',
+      );
+      if (wantsToShare == true) {
+        try {
+          await ref.read(activeShareProvider.notifier).start(
+                tripId: trip.id,
+                lineId: firstTransitLeg.lineId!,
+              );
+        } catch (_) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No se pudo iniciar el compartido de ubicación.'),
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    if (context.mounted) {
+      context.go(AppRoutes.home);
+    }
+  }
+
+  void _askCommunity(BuildContext context, RouteLeg leg) {
+    AskQuestionSheet.show(
+      context,
+      lineId: leg.lineId!,
+      lineLabel: leg.lineName ?? 'esta línea',
     );
   }
 
@@ -105,7 +154,13 @@ class RouteDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 const SizedBox(height: 16),
-                for (final leg in option.legs) _LegTile(leg: leg),
+                for (final leg in option.legs)
+                  _LegTile(
+                    leg: leg,
+                    onAskCommunity: leg.mode != TransportMode.walk && leg.lineId != null
+                        ? () => _askCommunity(context, leg)
+                        : null,
+                  ),
               ],
             ),
           ),
@@ -215,9 +270,10 @@ class _RouteMap extends StatelessWidget {
 }
 
 class _LegTile extends StatelessWidget {
-  const _LegTile({required this.leg});
+  const _LegTile({required this.leg, this.onAskCommunity});
 
   final RouteLeg leg;
+  final VoidCallback? onAskCommunity;
 
   @override
   Widget build(BuildContext context) {
@@ -261,6 +317,20 @@ class _LegTile extends StatelessWidget {
                     color: theme.colorScheme.outline,
                   ),
                 ),
+                if (onAskCommunity != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: onAskCommunity,
+                      icon: const Icon(Icons.forum_outlined, size: 16),
+                      label: const Text('Preguntar a la comunidad'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 32),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

@@ -178,34 +178,41 @@ class _ProfileContent extends ConsumerWidget {
         const SizedBox(height: 24),
         Card(
           color: theme.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.handshake,
-                  size: 40,
-                  color: theme.colorScheme.onPrimaryContainer,
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${profile.ayniPoints} puntos Ayni',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => context.push(AppRoutes.community),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.handshake,
+                    size: 40,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${profile.ayniPoints} puntos Ayni',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                        Text(
+                          'Gana puntos ayudando a otros viajeros — toca para ver tu historial',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      'Gana puntos ayudando a otros viajeros',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                  Icon(Icons.chevron_right, color: theme.colorScheme.onPrimaryContainer),
+                ],
+              ),
             ),
           ),
         ),
