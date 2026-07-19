@@ -62,7 +62,7 @@ $serviceKey = $envValues['SUPABASE_SERVICE_ROLE_KEY']
 
 if (-not $supabaseUrl -or -not $serviceKey) {
     Write-Host "`nSupabase no esta configurado en .env: se omiten las pruebas autenticadas." -ForegroundColor Yellow
-    Write-Host "Llena SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY y SUPABASE_JWT_SECRET, corre los seeds y vuelve a ejecutar este script.`n"
+    Write-Host "Llena SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY, corre los seeds y vuelve a ejecutar este script.`n"
     Write-Host "Resultado: $script:passed OK, $script:failed fallos"
     exit ([int]($script:failed -gt 0))
 }

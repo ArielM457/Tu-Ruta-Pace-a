@@ -16,10 +16,13 @@ import {
 export interface ProfileResponse {
   id: string;
   displayName: string | null;
+  phone: string | null;
   role: UserRole;
   accessibilityProfile: AccessibilityProfile;
   defaultPriority: TravelPriority;
   ayniPoints: number;
+  routeAlertsEnabled: boolean;
+  shareLocationWithFamily: boolean;
   createdAt: string;
 }
 
@@ -65,11 +68,20 @@ export class UsersService {
     if (dto.displayName !== undefined) {
       changes.display_name = dto.displayName;
     }
+    if (dto.phone !== undefined) {
+      changes.phone = dto.phone;
+    }
     if (dto.accessibilityProfile !== undefined) {
       changes.accessibility_profile = dto.accessibilityProfile;
     }
     if (dto.defaultPriority !== undefined) {
       changes.default_priority = dto.defaultPriority;
+    }
+    if (dto.routeAlertsEnabled !== undefined) {
+      changes.route_alerts_enabled = dto.routeAlertsEnabled;
+    }
+    if (dto.shareLocationWithFamily !== undefined) {
+      changes.share_location_with_family = dto.shareLocationWithFamily;
     }
     return changes;
   }
@@ -78,6 +90,7 @@ export class UsersService {
     return {
       id: profile.id,
       displayName: profile.display_name,
+      phone: profile.phone,
       role:
         (profile.role as UserRole) === UserRole.Government
           ? UserRole.Government
@@ -86,6 +99,8 @@ export class UsersService {
         profile.accessibility_profile as AccessibilityProfile,
       defaultPriority: profile.default_priority as TravelPriority,
       ayniPoints: profile.ayni_points,
+      routeAlertsEnabled: profile.route_alerts_enabled,
+      shareLocationWithFamily: profile.share_location_with_family,
       createdAt: profile.created_at,
     };
   }

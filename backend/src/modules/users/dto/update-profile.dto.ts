@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, Length } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, Length } from 'class-validator';
 import {
   AccessibilityProfile,
   TravelPriority,
@@ -11,10 +11,23 @@ export class UpdateProfileDto {
   displayName?: string;
 
   @IsOptional()
+  @IsString()
+  @Length(6, 20)
+  phone?: string;
+
+  @IsOptional()
   @IsEnum(AccessibilityProfile)
   accessibilityProfile?: AccessibilityProfile;
 
   @IsOptional()
   @IsEnum(TravelPriority)
   defaultPriority?: TravelPriority;
+
+  @IsOptional()
+  @IsBoolean()
+  routeAlertsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  shareLocationWithFamily?: boolean;
 }

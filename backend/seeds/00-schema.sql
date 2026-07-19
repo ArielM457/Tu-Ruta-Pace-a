@@ -3,10 +3,13 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
+  phone text,
   role text not null default 'citizen',
   accessibility_profile text not null default 'none',
   default_priority text not null default 'time',
   ayni_points integer not null default 0,
+  route_alerts_enabled boolean not null default true,
+  share_location_with_family boolean not null default false,
   created_at timestamptz not null default now()
 );
 
@@ -147,13 +150,44 @@ create table if not exists public.community_answers (
 create table if not exists public.complaints (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  complaint_type text not null default 'other',
   vehicle_identifier text,
   transport_kind text not null,
+  route_label text,
   line_id uuid references public.transport_lines(id) on delete set null,
   stop_id uuid references public.transport_stops(id) on delete set null,
   complaint text not null,
-  status text not null default 'submitted',
+  photo_url text,
+  status text not null default 'in_review',
   created_at timestamptz not null default now()
+);
+
+create table if not exists public.favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  lat double precision not null,
+  lng double precision not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.family_groups (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.family_members (
+  id uuid primary key default gen_random_uuid(),
+  group_id uuid not null references public.family_groups(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  relationship_label text,
+  invited_email text,
+  invite_code text not null,
+  status text not null default 'pending',
+  created_at timestamptz not null default now(),
+  unique (group_id, user_id)
 );
 
 create table if not exists public.risk_zones (
@@ -179,6 +213,11 @@ create index if not exists idx_community_questions_line_status on public.communi
 create index if not exists idx_community_questions_asker on public.community_questions(asker_id, created_at);
 create index if not exists idx_community_answers_question on public.community_answers(question_id);
 create index if not exists idx_complaints_user on public.complaints(user_id, created_at);
+create index if not exists idx_favorites_user on public.favorites(user_id, created_at);
+create unique index if not exists uq_family_members_invite_code
+  on public.family_members(invite_code);
+create index if not exists idx_family_members_group on public.family_members(group_id);
+create index if not exists idx_family_members_user on public.family_members(user_id);
 create unique index if not exists uq_ayni_verified_report
   on public.ayni_transactions(reference_id) where reason = 'verified_report';
 
@@ -198,6 +237,9 @@ alter table public.risk_zones enable row level security;
 alter table public.community_questions enable row level security;
 alter table public.community_answers enable row level security;
 alter table public.complaints enable row level security;
+alter table public.favorites enable row level security;
+alter table public.family_groups enable row level security;
+alter table public.family_members enable row level security;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -335,7 +377,8 @@ $$;
 create or replace function public.answer_community_question(
   p_question_id uuid,
   p_responder_id uuid,
-  p_content text
+  p_content text,
+  p_reward_amount integer
 )
 returns setof public.community_answers
 language plpgsql
@@ -363,16 +406,16 @@ begin
     raise exception 'QUESTION_EXPIRED';
   end if;
   insert into public.community_answers (question_id, responder_id, content, points_awarded)
-  values (p_question_id, p_responder_id, p_content, v_question.points_cost)
+  values (p_question_id, p_responder_id, p_content, p_reward_amount)
   returning id into v_answer_id;
   update public.community_questions
   set status = 'answered', answered_at = now()
   where id = p_question_id;
   update public.profiles
-  set ayni_points = ayni_points + v_question.points_cost
+  set ayni_points = ayni_points + p_reward_amount
   where id = p_responder_id;
   insert into public.ayni_transactions (user_id, amount, reason, reference_id)
-  values (p_responder_id, v_question.points_cost, 'answered_question', v_answer_id);
+  values (p_responder_id, p_reward_amount, 'answered_question', v_answer_id);
   return query select * from public.community_answers where id = v_answer_id;
 end;
 $$;
@@ -401,4 +444,57 @@ begin
   end loop;
   return v_expired_count;
 end;
+$$;
+
+create or replace function public.community_weekly_ranking()
+returns table (
+  user_id uuid,
+  display_name text,
+  points bigint,
+  rnk bigint
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    t.user_id,
+    coalesce(p.display_name, 'Colaborador') as display_name,
+    sum(t.amount) as points,
+    rank() over (order by sum(t.amount) desc) as rnk
+  from public.ayni_transactions t
+  join public.profiles p on p.id = t.user_id
+  where t.created_at >= date_trunc('week', now())
+  group by t.user_id, p.display_name
+  order by points desc;
+$$;
+
+create or replace function public.community_feed(p_limit integer default 20)
+returns table (
+  id uuid,
+  user_id uuid,
+  display_name text,
+  reason text,
+  amount integer,
+  created_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    t.id,
+    t.user_id,
+    coalesce(p.display_name, 'Colaborador') as display_name,
+    t.reason,
+    t.amount,
+    t.created_at
+  from public.ayni_transactions t
+  join public.profiles p on p.id = t.user_id
+  where t.reason in ('verified_report', 'confirmed_incident', 'answered_question')
+    and t.amount > 0
+  order by t.created_at desc
+  limit p_limit;
 $$;
