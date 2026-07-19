@@ -59,6 +59,19 @@ class MyQuestionsNotifier extends AsyncNotifier<List<CommunityQuestion>> {
   }
 }
 
+final communityRankingProvider = FutureProvider.autoDispose<CommunityRanking>(
+  (ref) => ref.read(communityRepositoryProvider).getRanking(),
+);
+
+final communityFeedProvider =
+    FutureProvider.autoDispose<List<CommunityFeedEntry>>(
+  (ref) => ref.read(communityRepositoryProvider).getFeed(),
+);
+
+final pointsConfigProvider = FutureProvider.autoDispose<PointsConfig>(
+  (ref) => ref.read(communityRepositoryProvider).getPointsConfig(),
+);
+
 /// Tracks whether the "someone needs help" popup was dismissed this
 /// session, so it doesn't reappear until the app restarts (FR-004).
 final helpPopupDismissedProvider = StateProvider<bool>((ref) => false);

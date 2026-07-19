@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router.dart';
+import '../../../../app/theme.dart';
 import '../../domain/user_profile.dart';
 import '../providers/profile_providers.dart';
 import '../widgets/preference_options.dart';
@@ -53,7 +54,7 @@ class _PreferencesOnboardingScreenState
     final isAccessibilityStep = _currentStep == 0;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isAccessibilityStep ? 'Sobre ti (1 de 2)' : 'Tu prioridad (2 de 2)'),
+        title: const Text('Configura tu perfil'),
         leading: isAccessibilityStep
             ? null
             : BackButton(onPressed: () => setState(() => _currentStep = 0)),
@@ -65,6 +66,8 @@ class _PreferencesOnboardingScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _StepIndicator(currentStep: _currentStep, stepCount: 2),
+              const SizedBox(height: 20),
               Text(
                 isAccessibilityStep
                     ? '¿Tienes alguna necesidad de accesibilidad?'
@@ -134,6 +137,35 @@ class _PreferencesOnboardingScreenState
           ),
         ),
       ),
+    );
+  }
+}
+
+class _StepIndicator extends StatelessWidget {
+  const _StepIndicator({required this.currentStep, required this.stepCount});
+
+  final int currentStep;
+  final int stepCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (int index = 0; index < stepCount; index++) ...[
+          if (index > 0) const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: index <= currentStep
+                    ? ChasquiColors.yellow600
+                    : ChasquiColors.neutral100,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

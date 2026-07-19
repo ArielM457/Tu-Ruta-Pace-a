@@ -60,7 +60,7 @@ class ShareOptInSheet extends StatelessWidget {
             ),
             const Gap(6),
             Text(
-              'Ganarás puntos Ayni proporcionales al tiempo que compartas.',
+              'Ganarás Puntos Chass proporcionales al tiempo que compartas.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: Colors.indigo[700],
                 fontWeight: FontWeight.w600,

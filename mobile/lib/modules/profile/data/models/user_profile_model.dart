@@ -12,10 +12,13 @@ abstract class UserProfileModel with _$UserProfileModel {
   const factory UserProfileModel({
     required String id,
     String? displayName,
+    String? phone,
     required String role,
     required String accessibilityProfile,
     required String defaultPriority,
     required int ayniPoints,
+    required bool routeAlertsEnabled,
+    required bool shareLocationWithFamily,
     required String createdAt,
   }) = _UserProfileModel;
 
@@ -25,10 +28,13 @@ abstract class UserProfileModel with _$UserProfileModel {
   UserProfile toEntity() => UserProfile(
         id: id,
         displayName: displayName,
+        phone: phone,
         role: UserRole.fromApi(role),
         accessibilityProfile: AccessibilityProfile.fromApi(accessibilityProfile),
         defaultPriority: TravelPriority.fromApi(defaultPriority),
         ayniPoints: ayniPoints,
+        routeAlertsEnabled: routeAlertsEnabled,
+        shareLocationWithFamily: shareLocationWithFamily,
         createdAt: DateTime.parse(createdAt),
       );
 }

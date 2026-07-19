@@ -48,7 +48,7 @@ class SharingChip extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('¿Dejar de compartir?'),
         content: const Text(
-          'Recibirás los puntos Ayni acumulados por el tiempo que compartiste tu ubicación.',
+          'Recibirás los Puntos Chass acumulados por el tiempo que compartiste tu ubicación.',
         ),
         actions: [
           TextButton(
@@ -70,7 +70,7 @@ class SharingChip extends ConsumerWidget {
         SnackBar(
           content: Text(
             pointsEarned != null && pointsEarned > 0
-                ? '¡+$pointsEarned puntos Ayni ganados!'
+                ? '¡+$pointsEarned Puntos Chass ganados!'
                 : 'Dejaste de compartir tu ubicación',
           ),
           backgroundColor: const Color(0xFF2E7D32),

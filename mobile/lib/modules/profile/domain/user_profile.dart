@@ -48,29 +48,43 @@ class UserProfile {
   const UserProfile({
     required this.id,
     required this.displayName,
+    required this.phone,
     required this.role,
     required this.accessibilityProfile,
     required this.defaultPriority,
     required this.ayniPoints,
+    required this.routeAlertsEnabled,
+    required this.shareLocationWithFamily,
     required this.createdAt,
   });
 
   final String id;
   final String? displayName;
+  final String? phone;
   final UserRole role;
   final AccessibilityProfile accessibilityProfile;
   final TravelPriority defaultPriority;
   final int ayniPoints;
+  final bool routeAlertsEnabled;
+  final bool shareLocationWithFamily;
   final DateTime createdAt;
 
-  UserProfile copyWith({int? ayniPoints}) {
+  UserProfile copyWith({
+    int? ayniPoints,
+    bool? routeAlertsEnabled,
+    bool? shareLocationWithFamily,
+  }) {
     return UserProfile(
       id: id,
       displayName: displayName,
+      phone: phone,
       role: role,
       accessibilityProfile: accessibilityProfile,
       defaultPriority: defaultPriority,
       ayniPoints: ayniPoints ?? this.ayniPoints,
+      routeAlertsEnabled: routeAlertsEnabled ?? this.routeAlertsEnabled,
+      shareLocationWithFamily:
+          shareLocationWithFamily ?? this.shareLocationWithFamily,
       createdAt: createdAt,
     );
   }

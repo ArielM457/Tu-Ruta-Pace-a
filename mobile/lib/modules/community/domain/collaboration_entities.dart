@@ -39,6 +39,7 @@ enum AyniReason {
   answeredQuestion,
   questionRefunded,
   verifiedReport,
+  confirmedIncident,
   bonus;
 
   static AyniReason fromApi(String value) {
@@ -55,6 +56,8 @@ enum AyniReason {
         return AyniReason.questionRefunded;
       case 'verified_report':
         return AyniReason.verifiedReport;
+      case 'confirmed_incident':
+        return AyniReason.confirmedIncident;
       default:
         return AyniReason.bonus;
     }
@@ -74,8 +77,10 @@ enum AyniReason {
         return 'Reembolso — nadie respondió';
       case AyniReason.verifiedReport:
         return 'Tu reporte fue verificado';
+      case AyniReason.confirmedIncident:
+        return 'Verificaste un reporte activo';
       case AyniReason.bonus:
-        return 'Bono Ayni';
+        return 'Bono de Puntos Chass';
     }
   }
 
@@ -93,6 +98,8 @@ enum AyniReason {
         return '↩️';
       case AyniReason.verifiedReport:
         return '🚧';
+      case AyniReason.confirmedIncident:
+        return '✅';
       case AyniReason.bonus:
         return '🎁';
     }

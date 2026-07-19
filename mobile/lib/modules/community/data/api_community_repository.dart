@@ -85,4 +85,40 @@ class ApiCommunityRepository implements CommunityRepository {
       throw toApiException(e);
     }
   }
+
+  @override
+  Future<CommunityRanking> getRanking() async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/community/ranking',
+        queryParameters: {'period': 'week'},
+      );
+      return CommunityRanking.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  @override
+  Future<List<CommunityFeedEntry>> getFeed() async {
+    try {
+      final response = await _dio.get<dynamic>('/community/feed');
+      return (response.data as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map(CommunityFeedEntry.fromJson)
+          .toList();
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
+
+  @override
+  Future<PointsConfig> getPointsConfig() async {
+    try {
+      final response = await _dio.get<dynamic>('/community/points-config');
+      return PointsConfig.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw toApiException(e);
+    }
+  }
 }

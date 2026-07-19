@@ -71,7 +71,7 @@ class _AskQuestionSheetState extends ConsumerState<AskQuestionSheet> {
         SnackBar(
           content: Text(
             question != null
-                ? 'Pregunta enviada — costó ${question.pointsCost} puntos Ayni'
+                ? 'Pregunta enviada — costó ${question.pointsCost} Puntos Chass'
                 : 'Pregunta enviada',
           ),
           backgroundColor: Colors.indigo[700],
@@ -93,7 +93,7 @@ class _AskQuestionSheetState extends ConsumerState<AskQuestionSheet> {
         case 'NO_ACTIVE_COLLABORATORS':
           return 'No hay viajeros activos en esta línea ahora';
         case 'INSUFFICIENT_AYNI_POINTS':
-          return 'Necesitas más puntos Ayni. Comparte tu ubicación para ganarlos.';
+          return 'Necesitas más Puntos Chass. Comparte tu ubicación para ganarlos.';
         default:
           return error.message;
       }
@@ -163,7 +163,7 @@ class _AskQuestionSheetState extends ConsumerState<AskQuestionSheet> {
             ],
             const Gap(12),
             Text(
-              'Preguntar tiene un costo en puntos Ayni. Si nadie responde a tiempo, se te reembolsan automáticamente.',
+              'Preguntar tiene un costo en Puntos Chass. Si nadie responde a tiempo, se te reembolsan automáticamente.',
               style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
             ),
             const Gap(20),

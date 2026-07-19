@@ -17,4 +17,10 @@ abstract class CommunityRepository {
     String questionId, {
     required String content,
   });
+
+  Future<CommunityRanking> getRanking();
+
+  Future<List<CommunityFeedEntry>> getFeed();
+
+  Future<PointsConfig> getPointsConfig();
 }

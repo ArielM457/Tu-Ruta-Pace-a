@@ -46,7 +46,7 @@ class _QuestionAnswerCardState extends ConsumerState<QuestionAnswerCard> {
       final result = ref.read(answerQuestionControllerProvider).value;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('¡+${result?.pointsAwarded ?? widget.question.pointsCost} puntos Ayni!'),
+          content: Text('¡+${result?.pointsAwarded ?? widget.question.pointsCost} Puntos Chass!'),
           backgroundColor: const Color(0xFF2E7D32),
           behavior: SnackBarBehavior.floating,
         ),

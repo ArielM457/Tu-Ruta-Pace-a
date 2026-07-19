@@ -7,7 +7,12 @@ abstract class ProfileRepository {
 
   Future<UserProfile> updateMyProfile({
     String? displayName,
+    String? phone,
     AccessibilityProfile? accessibilityProfile,
     TravelPriority? defaultPriority,
+    bool? routeAlertsEnabled,
+    bool? shareLocationWithFamily,
   });
+
+  Future<int> getPeopleHelpedCount();
 }

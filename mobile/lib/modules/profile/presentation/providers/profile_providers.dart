@@ -9,6 +9,10 @@ final profileRepositoryProvider = Provider<ProfileRepository>(
   (ref) => ApiProfileRepository(ref.watch(apiClientProvider)),
 );
 
+final peopleHelpedCountProvider = FutureProvider.autoDispose<int>(
+  (ref) => ref.read(profileRepositoryProvider).getPeopleHelpedCount(),
+);
+
 final profileControllerProvider =
     AsyncNotifierProvider<ProfileController, UserProfile>(
   ProfileController.new,
@@ -22,23 +26,26 @@ class ProfileController extends AsyncNotifier<UserProfile> {
 
   Future<bool> updatePreferences({
     String? displayName,
+    String? phone,
     AccessibilityProfile? accessibilityProfile,
     TravelPriority? defaultPriority,
+    bool? routeAlertsEnabled,
+    bool? shareLocationWithFamily,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref.read(profileRepositoryProvider).updateMyProfile(
             displayName: displayName,
+            phone: phone,
             accessibilityProfile: accessibilityProfile,
             defaultPriority: defaultPriority,
+            routeAlertsEnabled: routeAlertsEnabled,
+            shareLocationWithFamily: shareLocationWithFamily,
           ),
     );
     return !state.hasError;
   }
 
-  /// Applies a fresh Ayni points balance locally (e.g. after sharing
-  /// location or answering a question) so the badge updates instantly
-  /// without refetching the whole profile.
   void applyAyniBalance(int balance) {
     final current = state.value;
     if (current != null) {

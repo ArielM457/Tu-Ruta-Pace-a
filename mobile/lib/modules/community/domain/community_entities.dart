@@ -161,6 +161,151 @@ class LineActivity {
   }
 }
 
+enum CommunityBadge {
+  hero,
+  active,
+  collaborator,
+  member,
+  newcomer;
+
+  static CommunityBadge fromApi(String value) {
+    switch (value) {
+      case 'hero':
+        return CommunityBadge.hero;
+      case 'active':
+        return CommunityBadge.active;
+      case 'collaborator':
+        return CommunityBadge.collaborator;
+      case 'member':
+        return CommunityBadge.member;
+      default:
+        return CommunityBadge.newcomer;
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case CommunityBadge.hero:
+        return 'Héroe';
+      case CommunityBadge.active:
+        return 'Activo';
+      case CommunityBadge.collaborator:
+        return 'Colaborador';
+      case CommunityBadge.member:
+        return 'Miembro';
+      case CommunityBadge.newcomer:
+        return 'Nuevo';
+    }
+  }
+}
+
+const int _heroBadgeThreshold = 800;
+const int _activeBadgeThreshold = 500;
+const int _collaboratorBadgeThreshold = 400;
+const int _memberBadgeThreshold = 250;
+
+CommunityBadge communityBadgeForPoints(int points) {
+  if (points >= _heroBadgeThreshold) return CommunityBadge.hero;
+  if (points >= _activeBadgeThreshold) return CommunityBadge.active;
+  if (points >= _collaboratorBadgeThreshold) return CommunityBadge.collaborator;
+  if (points >= _memberBadgeThreshold) return CommunityBadge.member;
+  return CommunityBadge.newcomer;
+}
+
+class CommunityRankingEntry {
+  const CommunityRankingEntry({
+    required this.userId,
+    required this.displayName,
+    required this.points,
+    required this.rank,
+    required this.badge,
+  });
+
+  final String userId;
+  final String displayName;
+  final int points;
+  final int rank;
+  final CommunityBadge badge;
+
+  factory CommunityRankingEntry.fromJson(Map<String, dynamic> json) {
+    return CommunityRankingEntry(
+      userId: json['userId'] as String,
+      displayName: json['displayName'] as String,
+      points: json['points'] as int,
+      rank: json['rank'] as int,
+      badge: CommunityBadge.fromApi(json['badge'] as String),
+    );
+  }
+}
+
+class CommunityRanking {
+  const CommunityRanking({required this.top, required this.requester});
+
+  final List<CommunityRankingEntry> top;
+  final CommunityRankingEntry requester;
+
+  factory CommunityRanking.fromJson(Map<String, dynamic> json) {
+    return CommunityRanking(
+      top: (json['top'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map(CommunityRankingEntry.fromJson)
+          .toList(),
+      requester: CommunityRankingEntry.fromJson(
+        json['requester'] as Map<String, dynamic>,
+      ),
+    );
+  }
+}
+
+class CommunityFeedEntry {
+  const CommunityFeedEntry({
+    required this.id,
+    required this.displayName,
+    required this.reason,
+    required this.points,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String displayName;
+  final String reason;
+  final int points;
+  final String createdAt;
+
+  factory CommunityFeedEntry.fromJson(Map<String, dynamic> json) {
+    return CommunityFeedEntry(
+      id: json['id'] as String,
+      displayName: json['displayName'] as String,
+      reason: json['reason'] as String,
+      points: json['points'] as int,
+      createdAt: json['createdAt'] as String,
+    );
+  }
+}
+
+class PointsConfig {
+  const PointsConfig({
+    required this.reportReward,
+    required this.verifyReward,
+    required this.answerReward,
+    required this.askCost,
+  });
+
+  final int reportReward;
+  final int verifyReward;
+  final int answerReward;
+  final int askCost;
+
+  factory PointsConfig.fromJson(Map<String, dynamic> json) {
+    return PointsConfig(
+      reportReward: json['reportReward'] as int,
+      verifyReward: json['verifyReward'] as int,
+      answerReward: json['answerReward'] as int,
+      askCost: json['askCost'] as int,
+    );
+  }
+}
+
 class AnswerQuestionResult {
   const AnswerQuestionResult({
     required this.answer,

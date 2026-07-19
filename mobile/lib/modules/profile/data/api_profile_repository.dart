@@ -28,21 +28,41 @@ class ApiProfileRepository implements ProfileRepository {
   @override
   Future<UserProfile> updateMyProfile({
     String? displayName,
+    String? phone,
     AccessibilityProfile? accessibilityProfile,
     TravelPriority? defaultPriority,
+    bool? routeAlertsEnabled,
+    bool? shareLocationWithFamily,
   }) {
     return _requestProfile(
       () => _apiClient.patch<dynamic>(
         '/users/me',
         data: {
           if (displayName != null) 'displayName': displayName,
+          if (phone != null) 'phone': phone,
           if (accessibilityProfile != null)
             'accessibilityProfile': accessibilityProfile.apiValue,
           if (defaultPriority != null)
             'defaultPriority': defaultPriority.apiValue,
+          if (routeAlertsEnabled != null)
+            'routeAlertsEnabled': routeAlertsEnabled,
+          if (shareLocationWithFamily != null)
+            'shareLocationWithFamily': shareLocationWithFamily,
         },
       ),
     );
+  }
+
+  @override
+  Future<int> getPeopleHelpedCount() async {
+    try {
+      final response =
+          await _apiClient.get<dynamic>('/users/me/help-stats');
+      final body = response.data as Map<String, dynamic>;
+      return body['peopleHelped'] as int;
+    } on DioException catch (exception) {
+      throw toApiException(exception);
+    }
   }
 
   Future<UserProfile> _requestProfile(
