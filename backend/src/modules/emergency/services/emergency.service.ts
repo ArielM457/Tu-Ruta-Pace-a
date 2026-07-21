@@ -39,10 +39,12 @@ export interface EmergencyRouteResponse {
 }
 
 export const LA_PAZ_EMERGENCY_CONTACTS: EmergencyContact[] = [
-  { name: 'Emergencias generales', number: '911' },
-  { name: 'Ambulancias', number: '165' },
-  { name: 'Ambulancias SAMU', number: '160' },
-  { name: 'Red 114 GAMLP', number: '114' },
+  { name: 'Policía Nacional', number: '110' },
+  { name: 'Bomberos', number: '119' },
+  { name: 'Ambulancia SAMU', number: '165' },
+  { name: 'Defensa Civil', number: '800-10-1900' },
+  { name: 'Hospital de Clínicas', number: '2-283-5959' },
+  { name: 'Línea de Seguridad', number: '800-14-0000' },
 ];
 
 const HOSPITALS_TO_EVALUATE = 4;

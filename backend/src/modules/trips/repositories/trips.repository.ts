@@ -57,6 +57,23 @@ export class TripsRepository {
     return data as TripRecord | null;
   }
 
+  async listByUser(
+    userId: string,
+    page: number,
+    pageSize: number,
+  ): Promise<TripRecord[]> {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await this.supabaseService.client
+      .from('trips')
+      .select('*')
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false })
+      .range(from, to);
+    assertNoDatabaseError(error);
+    return (data ?? []) as TripRecord[];
+  }
+
   async markFinished(tripId: string): Promise<TripRecord> {
     const { data, error } = await this.supabaseService.client
       .from('trips')

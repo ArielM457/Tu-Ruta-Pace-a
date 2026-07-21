@@ -1,6 +1,9 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { DomainException } from '../../../common/exceptions/domain.exception';
-import { assertNoDatabaseError } from '../../../integrations/supabase/database-error';
+import {
+  assertNoDatabaseError,
+  isUniqueViolation,
+} from '../../../integrations/supabase/database-error';
 import { SupabaseService } from '../../../integrations/supabase/supabase.service';
 
 export interface AyniTransactionRecord {
@@ -49,6 +52,27 @@ export class AyniTransactionsRepository {
       assertNoDatabaseError(error);
     }
     return data as number;
+  }
+
+  async adjustPointsOncePerReference(
+    userId: string,
+    amount: number,
+    reason: string,
+    referenceId: string,
+  ): Promise<void> {
+    const { error } = await this.supabaseService.client.rpc(
+      'adjust_ayni_points',
+      {
+        p_user_id: userId,
+        p_amount: amount,
+        p_reason: reason,
+        p_reference_id: referenceId,
+      },
+    );
+    if (isUniqueViolation(error)) {
+      return;
+    }
+    assertNoDatabaseError(error);
   }
 
   async listByUser(

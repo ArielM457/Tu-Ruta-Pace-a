@@ -10,7 +10,10 @@ import { AppConfigModule } from './config/app-config.module';
 import { SupabaseModule } from './integrations/supabase/supabase.module';
 import { AssistantModule } from './modules/assistant/assistant.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
+import { CommunityModule } from './modules/community/community.module';
+import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { EmergencyModule } from './modules/emergency/emergency.module';
+import { FamilyModule } from './modules/family/family.module';
 import { GovernmentModule } from './modules/government/government.module';
 import { IncidentsModule } from './modules/incidents/incidents.module';
 import { RoutingModule } from './modules/routing/routing.module';
@@ -29,8 +32,11 @@ import { UsersModule } from './modules/users/users.module';
     RoutingModule,
     TripsModule,
     CollaborationModule,
+    CommunityModule,
     EmergencyModule,
     IncidentsModule,
+    ComplaintsModule,
+    FamilyModule,
     SafetyModule,
     AssistantModule,
     GovernmentModule,

@@ -5,17 +5,23 @@ import { SupabaseService } from '../../../integrations/supabase/supabase.service
 export interface ProfileRecord {
   id: string;
   display_name: string | null;
+  phone: string | null;
   role: string;
   accessibility_profile: string;
   default_priority: string;
   ayni_points: number;
+  route_alerts_enabled: boolean;
+  share_location_with_family: boolean;
   created_at: string;
 }
 
 export interface ProfileChanges {
   display_name?: string;
+  phone?: string | null;
   accessibility_profile?: string;
   default_priority?: string;
+  route_alerts_enabled?: boolean;
+  share_location_with_family?: boolean;
 }
 
 @Injectable()

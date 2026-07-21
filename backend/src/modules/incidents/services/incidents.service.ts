@@ -8,6 +8,10 @@ import {
 } from '../../../common/types/domain';
 import { haversineMeters } from '../../../common/utils/geo';
 import { AppConfigService } from '../../../config/app-config.service';
+import {
+  AyniPointsService,
+  AyniReason,
+} from '../../collaboration/services/ayni-points.service';
 import { CreateIncidentDto } from '../dto/create-incident.dto';
 import { CreateOfficialClosureDto } from '../dto/create-official-closure.dto';
 import {
@@ -41,6 +45,7 @@ const OFFICIAL_CLOSURE_DEFAULT_DAYS = 3;
 export class IncidentsService {
   constructor(
     private readonly incidentsRepository: IncidentsRepository,
+    private readonly ayniPointsService: AyniPointsService,
     private readonly appConfig: AppConfigService,
   ) {}
 
@@ -104,7 +109,45 @@ export class IncidentsService {
       this.appConfig.incidentConfirmThreshold,
       this.appConfig.incidentResolveThreshold,
     );
+    await this.rewardReporterIfJustVerified(record);
+    await this.rewardConfirmingVoter(record, userId, vote);
     return this.toIncident(record);
+  }
+
+  private async rewardConfirmingVoter(
+    record: IncidentRecord,
+    voterId: string,
+    vote: IncidentVote,
+  ): Promise<void> {
+    const isThirdPartyConfirmation =
+      vote === IncidentVote.Confirm && voterId !== record.reporter_id;
+    if (!isThirdPartyConfirmation) {
+      return;
+    }
+    await this.ayniPointsService.award(
+      voterId,
+      this.appConfig.ayniConfirmedIncidentReward,
+      AyniReason.ConfirmedIncident,
+      record.id,
+    );
+  }
+
+  private async rewardReporterIfJustVerified(
+    record: IncidentRecord,
+  ): Promise<void> {
+    const isVerifiedCitizenReport =
+      record.status === IncidentStatus.Active &&
+      record.source === IncidentSource.Citizen &&
+      record.reporter_id !== null;
+    if (!isVerifiedCitizenReport) {
+      return;
+    }
+    await this.ayniPointsService.awardOncePerReference(
+      record.reporter_id as string,
+      this.appConfig.ayniVerifiedReportReward,
+      AyniReason.VerifiedReport,
+      record.id,
+    );
   }
 
   async getActiveIncidents(bbox?: string): Promise<Incident[]> {

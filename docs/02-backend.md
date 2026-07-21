@@ -1,4 +1,4 @@
-# Ayni Ruta — Diseño del Backend (NestJS)
+# Chasqui — Diseño del Backend (NestJS)
 
 > Este documento toma los mismos flujos de [01-flujos-y-hu.md](01-flujos-y-hu.md) y los baja al diseño del backend. **El backend se desarrolla primero**; el frontend consume los contratos definidos aquí.
 
@@ -40,10 +40,12 @@ src/
     ├── users/               # Flujo 0 — perfil y preferencias
     ├── routing/             # Flujo 1 y 6 — motor de recomendación multimodal + costos
     ├── transports/          # catálogo: líneas de teleférico, rutas PumaKatari, radiotaxis
-    ├── trips/               # Flujo 2 — viajes en curso
-    ├── collaboration/       # Flujo 2 — ubicación colaborativa + puntos Ayni
+    ├── trips/               # Flujo 2 — viajes en curso + historial
+    ├── collaboration/       # Flujo 2 — ubicación colaborativa + Puntos Chass
+    ├── community/           # Flujo 2 — preguntas usuario a usuario (SOS usuario a usuario)
     ├── emergency/           # Flujo 3 — modo urgencia, hospitales, números
     ├── incidents/           # Flujo 4 — reportes, confirmaciones, cierres oficiales
+    ├── complaints/          # Flujo 9 — denuncias de transporte
     ├── safety/              # Flujo 7 — zonas de riesgo
     ├── assistant/           # Flujo 5 — proxy al agente IA
     └── government/          # Flujo 8 — monitoreo agregado
@@ -138,8 +140,30 @@ ayni_transactions (
   id uuid PK,
   user_id uuid FK,
   amount integer,          -- + ganó / - gastó
-  reason text,             -- shared_location | queried_vehicle | bonus
-  reference_id uuid,       -- share o consulta que la originó
+  reason text,             -- shared_location | queried_vehicle | asked_question | answered_question | question_refunded | verified_report | bonus
+  reference_id uuid,       -- share, pregunta, respuesta o incidente que la originó
+  created_at timestamptz
+)
+
+community_questions (      -- SOS usuario a usuario (HU-2.3)
+  id uuid PK,
+  asker_id uuid FK,
+  line_id uuid FK -> transport_lines,
+  kind text,               -- availability | arrival_time | seats
+  content text nullable,   -- detalle libre opcional
+  points_cost integer,     -- lo que pagó el que pregunta
+  status text,             -- open | answered | expired
+  created_at timestamptz,
+  expires_at timestamptz,  -- si nadie responde antes, se reembolsa
+  answered_at timestamptz nullable
+)
+
+community_answers (        -- respuesta de un colaborador (HU-2.7)
+  id uuid PK,
+  question_id uuid FK -> community_questions,
+  responder_id uuid FK,
+  content text,
+  points_awarded integer,
   created_at timestamptz
 )
 
@@ -188,6 +212,19 @@ shared_experiences (
   created_at timestamptz
 )
 
+-- Flujo 9
+complaints (
+  id uuid PK,
+  user_id uuid FK,
+  vehicle_identifier text, -- placa o número del vehículo
+  transport_kind text,     -- cable_car | pumakatari | minibus | micro | trufi | taxi
+  line_id uuid FK nullable -> transport_lines,   -- teleférico: línea / Puma: ruta
+  stop_id uuid FK nullable -> transport_stops,   -- estación o parada
+  complaint text,          -- el reclamo
+  status text default 'submitted',               -- submitted | in_review | closed (futuro)
+  created_at timestamptz
+)
+
 -- Flujo 7
 risk_zones (
   id uuid PK,
@@ -200,7 +237,7 @@ risk_zones (
 )
 ```
 
-> **Nota de implementación:** el código final guarda las posiciones como columnas `lat`/`lng` (double precision) y calcula cercanías con haversine en la aplicación, en lugar de `geography` + PostGIS. A escala urbana el resultado es equivalente y evita depender de funciones RPC para cada lectura. Las zonas de riesgo se modelan como centro + radio en metros. Las operaciones que exigen atomicidad (puntos Ayni, votos de incidentes) sí usan funciones RPC de Postgres: `adjust_ayni_points` y `register_incident_vote`. El schema real está en `backend/seeds/00-schema.sql`.
+> **Nota de implementación:** el código final guarda las posiciones como columnas `lat`/`lng` (double precision) y calcula cercanías con haversine en la aplicación, en lugar de `geography` + PostGIS. A escala urbana el resultado es equivalente y evita depender de funciones RPC para cada lectura. Las zonas de riesgo se modelan como centro + radio en metros. Las operaciones que exigen atomicidad (Puntos Chass, votos de incidentes) sí usan funciones RPC de Postgres: `adjust_ayni_points` y `register_incident_vote`. El schema real está en `backend/seeds/00-schema.sql`.
 
 ---
 
@@ -211,7 +248,7 @@ risk_zones (
 | Método | Ruta | HU | Descripción |
 |---|---|---|---|
 | `POST` | `/users/me/bootstrap` | HU-0.1 | Idempotente. Tras el primer login crea el `profile` con 0 puntos. |
-| `GET` | `/users/me` | HU-0.4 | Perfil completo: datos, preferencias, saldo Ayni. |
+| `GET` | `/users/me` | HU-0.4 | Perfil completo: datos, preferencias, saldo de Puntos Chass. |
 | `PATCH` | `/users/me` | HU-0.3, 0.4 | Actualiza `display_name`, `accessibility_profile`, `default_priority`. |
 
 - `SupabaseAuthGuard` global: valida JWT, inyecta `{ userId, role }`.
@@ -289,24 +326,65 @@ Servicios separados, cada uno con un objetivo: `GeocodingService`, `SurfaceRoute
 
 Los datos se cargan con **seeds** (scripts SQL/TS): las 11 líneas reales de teleférico con sus estaciones y tarifas, rutas PumaKatari y zonas de radiotaxi armadas desde información pública.
 
-## Flujo 2 — Viaje en curso, colaboración y puntos Ayni
+## Flujo 2 — Viaje en curso, colaboración, comunidad y Puntos Chass
+
+### Viajes y compartir ubicación
 
 | Método | Ruta | HU | Descripción |
 |---|---|---|---|
 | `POST` | `/trips` | HU-2.1 | Inicia viaje con la opción elegida (`route_snapshot`) |
 | `PATCH` | `/trips/:id/finish` | HU-2.1 | Cierra el viaje |
-| `POST` | `/collaboration/shares` | HU-2.2 | Empieza a compartir ubicación: `{ tripId, lineId }` |
+| `GET` | `/users/me/trips?page&pageSize` | HU-2.8 | Historial de viajes del usuario, más reciente primero |
+| `POST` | `/collaboration/shares` | HU-2.2 | Empieza a compartir ubicación: `{ tripId, lineId }`. Un share activo = "persona activa en la ruta" para la comunidad |
 | `POST` | `/collaboration/shares/:id/pings` | HU-2.2 | Ping periódico `{ lat, lng, recordedAt }` (cada ~15 s) |
 | `PATCH` | `/collaboration/shares/:id/stop` | HU-2.2 | Termina de compartir → calcula y acredita puntos |
-| `POST` | `/collaboration/vehicle-queries` | HU-2.3 | `{ lineId, stopId }` → posición estimada del transporte; descuenta puntos |
 | `GET` | `/users/me/ayni` | HU-2.4 | Saldo + historial paginado de `ayni_transactions` |
 
-### Reglas de negocio de puntos Ayni (`collaboration/services/AyniPointsService`)
+> `POST /collaboration/vehicle-queries` (estimación automática agregando pings) queda **deprecado para el front**: la consulta de transporte evolucionó a preguntas usuario a usuario (módulo `community`). El endpoint se mantiene funcionando como respaldo.
 
-- Ganancia: `puntos = minutos_compartidos * TASA_GANANCIA` (config, ej. 1 pto/min, tope por viaje).
-- Costo de consulta: constante (config, ej. 5 pts). **Si no hay colaboradores activos en la línea, no se cobra** y se responde `{ "available": false }`.
-- Acreditación y débito siempre pasan por `ayni_transactions` dentro de una transacción SQL; `profiles.ayni_points` es el saldo materializado.
-- Estimación de posición (HU-2.3): promedio de los últimos pings (< 2 min) de los shares activos de esa línea, agregado — nunca se devuelve un ping individual ni el usuario que lo emitió. ETA = distancia sobre la ruta de la línea / velocidad promedio del tramo.
+### Comunidad — SOS usuario a usuario (módulo `community`)
+
+Quien espera un transporte pregunta a las personas activas en esa ruta; quien responde gana los puntos que gastó el que preguntó.
+
+| Método | Ruta | HU | Descripción |
+|---|---|---|---|
+| `GET` | `/community/lines/:lineId/activity` | HU-2.3 | `{ "activePeople": n }` — cuántos shares activos hay en la línea (nunca quiénes ni dónde) |
+| `POST` | `/community/questions` | HU-2.3 | `{ lineId, kind, content? }` con `kind: availability \| arrival_time \| seats`. Descuenta `AYNI_QUESTION_COST` puntos y crea la pregunta con vencimiento `AYNI_QUESTION_TIMEOUT_MINUTES`. Si no hay personas activas en la línea: `409 NO_ACTIVE_COLLABORATORS` y **no se cobra** |
+| `GET` | `/community/questions/mine` | HU-2.3 | Mis preguntas recientes con sus respuestas (la app hace polling mientras espera) |
+| `GET` | `/community/questions/pending` | HU-2.7 | Preguntas abiertas de las líneas donde **yo** tengo un share activo (alimenta el pop-up "ayudar a esta persona"); excluye las mías |
+| `POST` | `/community/questions/:id/answers` | HU-2.7 | `{ content }` → responde la pregunta, la marca `answered` y acredita los puntos al que responde. Devuelve `{ answer, pointsAwarded, newBalance }` |
+
+Pregunta (`data` de `POST /community/questions`):
+
+```json
+{
+  "id": "…",
+  "lineId": "…",
+  "kind": "arrival_time",
+  "content": "¿Está muy lleno a esta hora?",
+  "pointsCost": 5,
+  "status": "open",
+  "createdAt": "…",
+  "expiresAt": "…",
+  "answers": []
+}
+```
+
+Reglas de negocio (`community/services/CommunityQuestionsService`):
+
+- Crear la pregunta y descontar puntos es **atómico** (RPC `create_community_question`); responder, marcar `answered` y acreditar puntos también (RPC `answer_community_question`).
+- Solo puede responder quien tiene un **share activo en esa línea**; nadie responde su propia pregunta (`CANNOT_ANSWER_OWN_QUESTION`).
+- La primera respuesta cierra la pregunta y se lleva los puntos; una segunda llega tarde: `409 QUESTION_ALREADY_ANSWERED`.
+- Si nadie responde antes de `expires_at`, un job (`@nestjs/schedule`, cada minuto) marca la pregunta `expired` y **reembolsa los puntos** al que preguntó (RPC `expire_community_questions`, movimiento `question_refunded`). Honestidad ante todo: la app informa "nadie respondió, te devolvimos tus puntos".
+- La identidad del que responde no se expone al que pregunta (solo el contenido de la respuesta).
+
+### Reglas de negocio de Puntos Chass (`collaboration/services/AyniPointsService`)
+
+- Ganancia por compartir: `puntos = minutos_compartidos * AYNI_RATE_PER_MINUTE` (tope `AYNI_MAXIMUM_POINTS_PER_SHARE`).
+- Ganancia por responder una pregunta: los `points_cost` de la pregunta (movimiento `answered_question`).
+- Ganancia por reporte verificado: `AYNI_VERIFIED_REPORT_REWARD` cuando un incidente reportado pasa a `active` (movimiento `verified_report`, ver Flujo 4).
+- Costo de preguntar: `AYNI_QUESTION_COST` (movimiento `asked_question`); se reembolsa si la pregunta expira sin respuesta.
+- Acreditación y débito siempre pasan por `ayni_transactions` dentro de una transacción SQL (RPC `adjust_ayni_points`); `profiles.ayni_points` es el saldo materializado.
 
 ## Flujo 3 — Modo urgencia
 
@@ -333,6 +411,7 @@ Los datos se cargan con **seeds** (scripts SQL/TS): las 11 líneas reales de tel
 - `confirmations >= UMBRAL_CONFIRMACION` (config, ej. 3) → `status = active`.
 - `denials >= UMBRAL_CIERRE` con proporción mayor a confirmaciones recientes → `status = resolved`.
 - Duplicados: un `POST /incidents` a < 100 m de un incidente `pending|active` del mismo tipo se convierte automáticamente en confirmación.
+- **Puntos por reporte verificado (HU-4.1):** cuando el voto que supera el umbral pasa el incidente de `pending` a `active`, el autor del reporte gana `AYNI_VERIFIED_REPORT_REWARD` Puntos Chass (movimiento `verified_report` con el incidente como referencia). Un índice único parcial sobre `ayni_transactions(reference_id) where reason = 'verified_report'` garantiza que nunca se acredite dos veces por el mismo incidente.
 - Expiración: job programado (`@nestjs/schedule`) que resuelve incidentes pasados de `expires_at` (default: bloqueos 12 h, refacciones 7 días).
 - El tráfico normal (HU-4.5) **no pasa por el backend**: la capa de tráfico la pinta Google Maps en el cliente.
 
@@ -374,6 +453,29 @@ No tiene endpoints propios: **vive dentro del motor de recomendación** (Flujo 1
 
 Ambos protegidos con `@Roles('government')`. Las cuentas de gobierno del demo se crean por seed.
 
+## Flujo 9 — Denuncias de transporte
+
+| Método | Ruta | HU | Descripción |
+|---|---|---|---|
+| `POST` | `/complaints` | HU-9.1 | Registra la denuncia (nace `submitted`) |
+| `GET` | `/complaints/mine` | HU-9.1 | Mis denuncias, más reciente primero |
+
+Request de `POST /complaints`:
+
+```json
+{
+  "vehicleIdentifier": "1234-ABC",
+  "transportKind": "cable_car",
+  "lineId": "…",
+  "stopId": "…",
+  "complaint": "El operador no dejó subir una silla de ruedas"
+}
+```
+
+- `vehicleIdentifier` es la placa o número del vehículo (texto libre, obligatorio salvo que venga `lineId`).
+- `lineId`/`stopId` son opcionales y se validan contra el catálogo `transports` (la parada debe pertenecer a la línea): teleférico → línea + estación; PumaKatari → ruta + parada.
+- `GET /government/complaints` (revisión por gobierno, HU-9.2) queda ⚪ futuro: no se implementa para la hackatón.
+
 ---
 
 ## Transversales
@@ -381,10 +483,12 @@ Ambos protegidos con `@Roles('government')`. Las cuentas de gobierno del demo se
 ### Configuración (variables de entorno)
 
 ```
-SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_JWT_SECRET
+SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 GOOGLE_MAPS_API_KEY
 AI_AGENT_BASE_URL, AI_AGENT_API_KEY
-AYNI_RATE_PER_MINUTE, AYNI_QUERY_COST, INCIDENT_CONFIRM_THRESHOLD
+AYNI_RATE_PER_MINUTE, AYNI_QUERY_COST, AYNI_QUESTION_COST,
+AYNI_QUESTION_TIMEOUT_MINUTES, AYNI_VERIFIED_REPORT_REWARD,
+INCIDENT_CONFIRM_THRESHOLD
 PORT, CORS_ORIGINS
 ```
 
@@ -403,6 +507,6 @@ PORT, CORS_ORIGINS
 2. Catálogo `transports` + seeds de teleférico/Puma.
 3. Motor `routing` con Google Directions + grafo propio (Flujo 1 sin incidentes).
 4. Módulo `incidents` + integración con el motor (HU-1.5).
-5. `collaboration` + puntos Ayni (Flujo 2).
+5. `collaboration` + Puntos Chass (Flujo 2).
 6. `emergency`, `safety`, `government` (rápidos: reutilizan el motor y son CRUD/agregaciones).
 7. `assistant` (proxy al servicio Python) al final.

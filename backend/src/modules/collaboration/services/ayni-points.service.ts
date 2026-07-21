@@ -8,6 +8,11 @@ import {
 export enum AyniReason {
   SharedLocation = 'shared_location',
   QueriedVehicle = 'queried_vehicle',
+  AskedQuestion = 'asked_question',
+  AnsweredQuestion = 'answered_question',
+  QuestionRefunded = 'question_refunded',
+  VerifiedReport = 'verified_report',
+  ConfirmedIncident = 'confirmed_incident',
   Bonus = 'bonus',
 }
 
@@ -38,6 +43,22 @@ export class AyniPointsService {
     return this.appConfig.ayniQueryCost;
   }
 
+  get questionCost(): number {
+    return this.appConfig.ayniQuestionCost;
+  }
+
+  get answerReward(): number {
+    return this.appConfig.ayniAnswerReward;
+  }
+
+  get verifiedReportReward(): number {
+    return this.appConfig.ayniVerifiedReportReward;
+  }
+
+  get confirmedIncidentReward(): number {
+    return this.appConfig.ayniConfirmedIncidentReward;
+  }
+
   async award(
     userId: string,
     amount: number,
@@ -48,6 +69,23 @@ export class AyniPointsService {
       return this.currentBalanceAfterNoOp(userId);
     }
     return this.ayniTransactionsRepository.adjustPoints(
+      userId,
+      amount,
+      reason,
+      referenceId,
+    );
+  }
+
+  async awardOncePerReference(
+    userId: string,
+    amount: number,
+    reason: AyniReason,
+    referenceId: string,
+  ): Promise<void> {
+    if (amount <= 0) {
+      return;
+    }
+    await this.ayniTransactionsRepository.adjustPointsOncePerReference(
       userId,
       amount,
       reason,

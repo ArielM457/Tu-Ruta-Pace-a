@@ -4,11 +4,12 @@ Scripts SQL para preparar la base de datos en Supabase. Se ejecutan en el **SQL 
 
 | Orden | Archivo | Qué crea |
 |---|---|---|
-| 1 | `00-schema.sql` | Todas las tablas, índices, RLS, el trigger que crea el perfil al registrarse y las funciones RPC (`adjust_ayni_points`, `register_incident_vote`) |
+| 1 | `00-schema.sql` | Todas las tablas, índices, RLS, el trigger que crea el perfil al registrarse y las funciones RPC (`adjust_ayni_points`, `register_incident_vote`, `create_community_question`, `answer_community_question`, `expire_community_questions`) |
 | 2 | `01-transport-network.sql` | Las 10 líneas operativas del teleférico con sus estaciones, 3 rutas PumaKatari y 3 zonas de radiotaxi (coordenadas aproximadas de La Paz) |
 | 3 | `02-health-facilities.sql` | Hospitales y puntos policiales de La Paz/El Alto |
 | 4 | `03-risk-zones.sql` | Zonas de riesgo con franjas horarias (datos preparados para el demo) |
 | 5 | `04-demo-data.sql` | Incidentes activos/pendientes y experiencias comunitarias de ejemplo |
+| 6 | `05-community-complaints-upgrade.sql` | **Solo para bases creadas antes de la comunidad**: tablas `community_questions`, `community_answers`, `complaints` y sus RPCs. Si ejecutas `00-schema.sql` desde cero, ya viene incluido y no lo necesitas |
 
 Todos los scripts son idempotentes o seguros de re-ejecutar excepto `02`–`04`, que insertan filas nuevas cada vez (ejecutarlos una sola vez).
 

@@ -62,7 +62,7 @@ $serviceKey = $envValues['SUPABASE_SERVICE_ROLE_KEY']
 
 if (-not $supabaseUrl -or -not $serviceKey) {
     Write-Host "`nSupabase no esta configurado en .env: se omiten las pruebas autenticadas." -ForegroundColor Yellow
-    Write-Host "Llena SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY y SUPABASE_JWT_SECRET, corre los seeds y vuelve a ejecutar este script.`n"
+    Write-Host "Llena SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY, corre los seeds y vuelve a ejecutar este script.`n"
     Write-Host "Resultado: $script:passed OK, $script:failed fallos"
     exit ([int]($script:failed -gt 0))
 }
@@ -129,11 +129,55 @@ if ($tripOk -and $hasLines) {
         Assert-Step 'Registrar ping de ubicacion' $ping.ok ($ping.error.error.message)
         $query = Invoke-Api POST '/collaboration/vehicle-queries' @{ lineId = $cableLine.id; stopId = $firstStop.id } $token
         Assert-Step 'Consultar donde viene el transporte' ($query.ok -and $null -ne $query.response.data.available) ($query.error.error.message)
+
+        $askerEmail = 'smoke.ayni.asker@test.com'
+        try {
+            Invoke-RestMethod -Method POST -Uri "$supabaseUrl/auth/v1/admin/users" -Headers $supabaseHeaders -ContentType 'application/json' -Body (@{ email = $askerEmail; password = $testPassword; email_confirm = $true } | ConvertTo-Json) | Out-Null
+        } catch {}
+        $askerSession = Invoke-RestMethod -Method POST -Uri "$supabaseUrl/auth/v1/token?grant_type=password" -Headers @{ apikey = $serviceKey } -ContentType 'application/json' -Body (@{ email = $askerEmail; password = $testPassword } | ConvertTo-Json)
+        $askerToken = $askerSession.access_token
+        Assert-Step 'Login del segundo usuario (el que pregunta)' ($null -ne $askerToken)
+        Invoke-Api POST '/users/me/bootstrap' @{ displayName = 'Usuario Pregunton' } $askerToken | Out-Null
+        Invoke-RestMethod -Method POST -Uri "$supabaseUrl/rest/v1/rpc/adjust_ayni_points" -Headers $supabaseHeaders -ContentType 'application/json' -Body (@{ p_user_id = $askerSession.user.id; p_amount = 20; p_reason = 'bonus'; p_reference_id = $null } | ConvertTo-Json) | Out-Null
+
+        $activity = Invoke-Api GET "/community/lines/$($cableLine.id)/activity" $null $askerToken
+        Assert-Step 'Comunidad: la linea muestra personas activas' ($activity.ok -and $activity.response.data.activePeople -ge 1) ($activity.error.error.message)
+
+        $question = Invoke-Api POST '/community/questions' @{ lineId = $cableLine.id; kind = 'arrival_time'; content = 'En cuanto tiempo llega y hay asientos?' } $askerToken
+        $questionOk = $question.ok -and $question.response.data.status -eq 'open'
+        Assert-Step 'Comunidad: crear pregunta descuenta puntos' $questionOk ($question.error.error.message)
+
+        if ($questionOk) {
+            $pendingQuestions = Invoke-Api GET '/community/questions/pending' $null $token
+            Assert-Step 'Comunidad: pop-up de preguntas pendientes para quien comparte' ($pendingQuestions.ok -and $pendingQuestions.response.data.Count -ge 1) ($pendingQuestions.error.error.message)
+
+            $answer = Invoke-Api POST "/community/questions/$($question.response.data.id)/answers" @{ content = 'Llega en unos 5 minutos y hay asientos libres' } $token
+            Assert-Step 'Comunidad: responder acredita puntos al colaborador' ($answer.ok -and $answer.response.data.pointsAwarded -gt 0) ($answer.error.error.message)
+
+            $myQuestions = Invoke-Api GET '/community/questions/mine' $null $askerToken
+            Assert-Step 'Comunidad: el que pregunta ve la respuesta' ($myQuestions.ok -and $myQuestions.response.data[0].answers.Count -ge 1) ($myQuestions.error.error.message)
+        }
+
+        $pumaLine = $lines.response.data | Where-Object { $_.kind -eq 'pumakatari' } | Select-Object -First 1
+        if ($pumaLine) {
+            $questionWithoutPeople = Invoke-Api POST '/community/questions' @{ lineId = $pumaLine.id; kind = 'availability' } $askerToken
+            Assert-Step 'Comunidad: linea sin activos responde NO_ACTIVE_COLLABORATORS sin cobrar' ($questionWithoutPeople.error.error.code -eq 'NO_ACTIVE_COLLABORATORS') ($questionWithoutPeople.raw)
+        }
+
+        $complaint = Invoke-Api POST '/complaints' @{ vehicleIdentifier = '1234-ABC'; transportKind = 'cable_car'; lineId = $cableLine.id; stopId = $firstStop.id; complaint = 'Reclamo de prueba del smoke test' } $askerToken
+        Assert-Step 'Denuncias: registrar denuncia' ($complaint.ok -and $complaint.response.data.status -eq 'submitted') ($complaint.error.error.message)
+
+        $myComplaints = Invoke-Api GET '/complaints/mine' $null $askerToken
+        Assert-Step 'Denuncias: listar mis denuncias' ($myComplaints.ok -and $myComplaints.response.data.Count -ge 1) ($myComplaints.error.error.message)
+
         $stop = Invoke-Api PATCH "/collaboration/shares/$($share.response.data.id)/stop" $null $token
         Assert-Step 'Detener share y acreditar puntos' $stop.ok ($stop.error.error.message)
     }
     $finish = Invoke-Api PATCH "/trips/$($trip.response.data.id)/finish" $null $token
     Assert-Step 'Finalizar viaje' $finish.ok ($finish.error.error.message)
+
+    $tripHistory = Invoke-Api GET '/users/me/trips' $null $token
+    Assert-Step 'Historial de viajes del usuario' ($tripHistory.ok -and $tripHistory.response.data.trips.Count -ge 1) ($tripHistory.error.error.message)
 }
 
 $ayni = Invoke-Api GET '/users/me/ayni' $null $token

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-void main() {
-  runApp(const MainApp());
-}
+import 'app/app.dart';
+import 'app/missing_configuration_app.dart';
+import 'core/config/app_environment.dart';
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
-    );
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (!AppEnvironment.isSupabaseConfigured) {
+    runApp(const MissingConfigurationApp());
+    return;
   }
+  await Supabase.initialize(
+    url: AppEnvironment.supabaseUrl,
+    anonKey: AppEnvironment.supabaseAnonKey,
+  );
+  runApp(const ProviderScope(child: AyniRutaApp()));
 }

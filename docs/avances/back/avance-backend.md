@@ -1,11 +1,11 @@
-# Avance del Backend — Ayni Ruta
+# Avance del Backend — Chasqui
 
 > Última actualización: 16 de julio de 2026
 > Estado: **API completa implementada, compilando y verificada por consola.** Falta conectar credenciales reales (Supabase, Google, Azure Foundry) y el deploy.
 
 ## Qué está construido
 
-El backend NestJS está **100% implementado** según el diseño de [02-backend.md](../../02-backend.md): los 10 módulos de dominio, el motor de recomendación multimodal, el sistema de puntos Ayni, la verificación de incidentes, el modo urgencia, las zonas de riesgo, el proxy al agente IA y la vista de gobierno.
+El backend NestJS está **100% implementado** según el diseño de [02-backend.md](../../02-backend.md): los 10 módulos de dominio, el motor de recomendación multimodal, el sistema de Puntos Chass, la verificación de incidentes, el modo urgencia, las zonas de riesgo, el proxy al agente IA y la vista de gobierno.
 
 | Módulo | Flujo que cubre | Estado |
 |---|---|---|
@@ -13,7 +13,7 @@ El backend NestJS está **100% implementado** según el diseño de [02-backend.m
 | `transports` | Catálogo teleférico/PumaKatari/radiotaxis | ✅ Completo (con seeds) |
 | `routing` | Flujo 1 y 6 — motor multimodal + costos | ✅ Completo |
 | `trips` | Flujo 2 — viajes | ✅ Completo |
-| `collaboration` | Flujo 2 — ubicación colaborativa + puntos Ayni | ✅ Completo |
+| `collaboration` | Flujo 2 — ubicación colaborativa + Puntos Chass | ✅ Completo |
 | `emergency` | Flujo 3 — modo urgencia | ✅ Completo |
 | `incidents` | Flujo 4 — reportes y verificación de vías | ✅ Completo |
 | `safety` | Flujo 7 — zonas de riesgo | ✅ Completo |
@@ -33,7 +33,7 @@ Base: `http://localhost:3000/api/v1` — todas las respuestas usan el sobre `{ "
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/users/me/bootstrap` | Crea el perfil tras el primer login (idempotente). Body opcional: `{ displayName }` |
-| GET | `/users/me` | Perfil: nombre, rol, accesibilidad, prioridad por defecto, puntos Ayni |
+| GET | `/users/me` | Perfil: nombre, rol, accesibilidad, prioridad por defecto, Puntos Chass |
 | PATCH | `/users/me` | Actualiza `displayName`, `accessibilityProfile` (`none/visual/reduced_mobility`), `defaultPriority` (`time/cost/safety`) |
 
 ### Transporte (catálogo)
@@ -49,7 +49,7 @@ Base: `http://localhost:3000/api/v1` — todas las respuestas usan el sobre `{ "
 
 El motor: combina caminata + teleférico/PumaKatari (directo o con 1 transbordo a ≤400 m) + taxi + minibús; penaliza tramos de superficie a <150 m de incidentes activos (el teleférico nunca se penaliza); con prioridad `safety` reemplaza caminatas en zona de riesgo por taxi; sin API key de Google usa estimaciones locales (haversine × factor vial).
 
-### Viajes y colaboración Ayni (Flujo 2)
+### Viajes y colaboración (Flujo 2)
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/trips` | Inicia viaje con `{ routeSnapshot }` (cancela viajes activos previos) |

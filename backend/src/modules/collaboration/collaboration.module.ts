@@ -22,5 +22,6 @@ import { VehicleLocationService } from './services/vehicle-location.service';
     LocationSharesRepository,
     LocationPingsRepository,
   ],
+  exports: [AyniPointsService, LocationSharesRepository],
 })
 export class CollaborationModule {}
